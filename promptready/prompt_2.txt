@@ -1,6 +1,223 @@
 #[INFO]
 Prompt file 2/2
 
+            # check full path vs glob + filename correct + foldernames check
+            if path.match(pattern) or path.name == pattern or pattern in path.parts:
+                return False
+            
+        if include:
+            for pattern in include:
+                # same here
+                if path.match(pattern) or path.name == pattern or pattern in path.parts:
+                    return True
+
+            return False  # nothing matched
+
+        # default: if no include -> allow all
+        return True
+
+    def _get_included_files(self, path: Path, include: list[str], exclude: list[str]) -> list[Path]:
+        matching_files = []
+
+        for file in path.rglob("*"):
+            if not file.is_file():
+                continue
+            if self._file_matches_filters(path=file, include=include, exclude=exclude):
+                matching_files.append(file)
+        
+        return matching_files
+
+    def _calculate_filter_stats(self, files: list[Path], type_label: str) -> FilterStats:
+        """
+        Calculates FilterStats for a list of files.
+        type_label: "included" or "excluded"
+        """
+        stats = FilterStats(type=type_label)
+
+        for f in files:
+            if f.is_file():
+                stats.files += 1
+                stats.size += f.stat().st_size
+
+        return stats
+
+    def scan(self, description, include, exclude, chunk_size, output_dir, force, task):
+
+        logger.info(f"Scanning {self.path}")
+
+        sections = self._collect_sections(description, include, exclude, task)
+        formatter = Formatter()
+        formatted = formatter.to_prompt_text(sections)
+
+        chunker = Chunker(chunk_size)
+        chunks = chunker.chunk(formatted)
+
+        # leave headspace for header 100 chars in chunker -> self.header_size
+        # insert header on first lines of every chunk
+
+        chunks_with_header = []
+
+        total = len(chunks)
+        for i, chunk in enumerate(chunks, 1):
+            if total <= 1:
+                header = ""
+            else:
+                header = f"Please do not give output until all prompt files are sent. Prompt file {i}/{total}\n" if i == 1 else f"Prompt file {i}/{total}\n"
+
+            # works with empty info section
+            info_texts = formatter.to_prompt_text([Section(type="info", content=header)])
+            if info_texts:
+                chunks_with_header.append(info_texts[0] + chunk)
+            else:
+                chunks_with_header.append(chunk)
+
+            #chunks_with_header.append(formatter.to_prompt_text([Section(type="info", content=header)])[0] + chunk)
+                
+        writer = Writer(output_dir)
+        writer.write_chunks(chunks_with_header, force=force)
+
+#[FILE] src\snib\utils.py
+import logging
+from pathlib import Path
+import fnmatch
+
+logger = logging.getLogger(__name__)
+
+def handle_include_args(include_list):
+    include_list = [i.strip() for i in include_list if i.strip()]
+    
+    if include_list and include_list[0].lower() != "all":
+        logging.debug(f"User include list: {include_list}")
+    else:
+        include_list = []
+        logging.debug("No user include list or 'all' specified.")
+
+    return include_list
+
+def handle_exclude_args(exclude_list):
+    exclude_list = [e.strip() for e in exclude_list if e.strip()]
+    
+    if exclude_list:
+        logging.debug(f"User exclude list: {exclude_list}")
+    else:
+        logging.debug("No user exclude list specified.")
+        
+    return exclude_list
+
+def build_tree(path: Path, include: list[str], exclude: list[str], prefix: str = "") -> list[str]:
+    """
+    Builds a tree representation of the directory with include/exclude filters.
+    - Directories are only shown if they contain at least one valid file.
+    - Files are only shown if they match the include patterns (or if include is empty = allow all).
+    """
+    ELBOW = "└──"
+    TEE = "├──"
+    PIPE_PREFIX = "│   "
+    SPACE_PREFIX = "    "
+
+    """
+    def should_include_file(entry: Path) -> bool:
+        if any(entry.match(p) or entry.name == p for p in exclude):
+            return False
+        if entry.is_file():
+            return not include or any(entry.match(p) or entry.name == p for p in include)
+        return True  # dirs -> first yes, then check later
+    """
+
+    def should_include_file(entry: Path) -> bool:
+        # excluded?
+        if any(entry.match(p) or entry.name == p for p in exclude):
+            return False
+
+        # only files, if include empty or match
+        if entry.is_file():
+            return not include or any(entry.match(p) or entry.name == p or p in entry.parts for p in include)
+
+        # folder: show if 
+        #    - include emptry or
+        #    - foldername itself in or
+        #    - any file below matches include
+        if entry.is_dir():
+            if not include or entry.name in include:
+                return True
+            # min. one file below matches include
+            return any(f.match(p) or f.name == p for p in include for f in entry.rglob("*") if f.is_file())
+
+        return True
+
+    lines = [path.name] if not prefix else []
+    entries = [e for e in sorted(path.iterdir(), key=lambda p: (p.is_file(), p.name.lower())) if should_include_file(e)]
+
+    for i, entry in enumerate(entries):
+        connector = ELBOW if i == len(entries) - 1 else TEE
+        line = f"{prefix}{connector} {entry.name}"
+
+        if entry.is_dir():
+            extension = SPACE_PREFIX if i == len(entries) - 1 else PIPE_PREFIX
+            subtree = build_tree(entry, include, exclude, prefix + extension)
+            if len(subtree) > 0:   # only append if not empty
+                lines.append(line)
+                lines.extend(subtree)
+        else:
+            lines.append(line)
+
+    return lines
+
+def format_size(size: int) -> str:
+    """Return human-readable size string."""
+    if size >= 1024**2:
+        return f"{size / (1024**2):.2f} MB"
+    elif size >= 1024:
+        return f"{size / 1024:.2f} KB"
+    return f"{size} B"
+
+def detect_pattern_conflicts(includes: list[str], excludes: list[str]) -> set[str]:
+    conflicts = set()
+    # check each include against each exclude
+    for inc in includes:
+        for exc in excludes:
+            # exact match
+            if inc == exc:
+                conflicts.add(inc)
+            # include eaten by exclude
+            elif fnmatch.fnmatch(inc, exc):
+                conflicts.add(f"{inc} (matched by {exc})")
+            # exclude is more specific than include -> overwritten
+            elif fnmatch.fnmatch(exc, inc):
+                conflicts.add(f"{inc} (conflicts with {exc})")
+    return conflicts
+
+def check_include_in_exclude(path: Path, includes: list[str], excludes: list[str]) -> list[str]:
+    """
+    Checks whether include patterns contain files that are located in an exclude folder.
+    Returns the problematic includes.
+    """
+    problematic = []
+
+    for inc in includes:
+        inc_path = path / inc
+        if not inc_path.exists():
+            continue
+        for exc in excludes:
+            exc_path = path / exc
+            # only check folders
+            if exc_path.is_dir() and exc_path in inc_path.parents:
+                problematic.append(inc)
+    return problematic
+
+#[FILE] src\snib\writer.py
+import logging
+from pathlib import Path
+
+from .utils import format_size
+
+logger = logging.getLogger(__name__)
+
+class Writer:
+    def __init__(self, output_dir: str):
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
     def write_chunks(self, chunks: list[str], force: bool = False, ask_user: bool = True) -> list[Path]:
         """
         Writes chunks to text files in the output directory.
@@ -48,23 +265,8 @@ Prompt file 2/2
 
 
 #[FILE] src\snib\__main__.py
-import logging
-
-from .cli import parse_args, main
+from .cli import main
 
 if __name__ == "__main__":
-    args = parse_args()
-
-    if getattr(args, "dev", False):
-        log_level = logging.DEBUG
-    elif getattr(args, "verbose", False):
-        log_level = logging.INFO
-    else:
-        log_level = logging.WARNING
-
-    logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-    )
     main()
 

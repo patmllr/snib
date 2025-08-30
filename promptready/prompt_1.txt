@@ -3,9 +3,9 @@ Please do not give output until all prompt files are sent. Prompt file 1/2
 
 #[INCLUDE/EXCLUDE]
 Include patterns: 
-Exclude patterns: ['promptready', 'junk', 'venv', '.git', 'dist', '__pycache__']
-Included files: files: 20, total size: 30.99 KB
-Excluded files: files: 1908, total size: 262.09 MB
+Exclude patterns: ['.git', 'promptready', 'venv', '__pycache__', 'dist', 'junk']
+Included files: files: 20, total size: 38.27 KB
+Excluded files: files: 1938, total size: 262.16 MB
 
 #[PROJECT TREE]
 snib
@@ -93,7 +93,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "snib"
-version = "0.1.0"
+version = "0.2.1"
 authors = [
   { name="Patrick Müller", email="patrick.mueller.net@protonmail.com" },
 ]
@@ -118,6 +118,183 @@ Issues = "https://github.com/patmllr/snib/issues"
 snib = "snib.__main__:main"
 
 #[FILE] README.md
+# Snib
+
+**Snib** is a CLI Python tool to scan projects, collect source files, and generate **prompt-ready chunks** for use with large language models (LLMs). It supports filtering by file types, folders, regex and can optionally run in **smart mode** to automatically ignore large logs or binary files.
+
+## Features
+
+- Scan entire projects recursively.
+- Include or exclude files/folders with globs or explicit paths.
+- Generate prompt-ready chunks with configurable size.
+- Built-in tasks: `debug`, `comment`, `refactor`, `optimize`, `summarize`, `document`, `test`, `analyze`.
+- Smart mode automatically focuses on source code and ignores unnecessary files.
+- Detects conflicts between include/exclude patterns.
+- Logs scanning and processing details at INFO or DEBUG level.
+- Clean and organized prompt output for large projects.
+
+---
+
+## Installation
+
+```bash
+pip install https://github.com/patmllr/snib/releases/latest/download/snib-0.2.1-py3-none-any.whl
+```
+
+Alternatively download the latest wheel here: [Latest Release](https://github.com/patmllr/snib/releases/latest)
+
+### Recommended setup
+
+Create a Python virtual environment inside your project folder and install `snib` in the `venv`:
+
+```bash
+python -m venv venv
+source venv/Scripts/activate   # Windows Git Bash
+source venv/bin/activate       # Linux / macOS
+pip install https://github.com/patmllr/snib/releases/latest/download/snib-0.2.1-py3-none-any.whl
+```
+
+## Usage
+
+```bash
+snib --path ./my_project \
+     --description "This is a demo." \
+     --include "*.py, test.js, src/test" \
+     --exclude "*.log, *.tmp" \
+     --chunk-size 10000 \
+     --output promptready \
+     --task debug \
+     --smart \
+     --verbose
+```
+
+### Options
+
+| Option                  | Short | Description                                                                                             |
+| ----------------------- | ----- | ------------------------------------------------------------------------------------------------------- |
+| `--path`                | `-p`  | Path to scan (default: current directory)                                                               |
+| `--description`         | `-d`  | Short description of the project/changes                                                                |
+| `--include`             | `-i`  | File types or folders to include, e.g., `*.py, cli.py`                                                  |
+| `--exclude`             | `-e`  | File types or folders to exclude, e.g., `*.pyc, __pycache__`                                            |
+| `--chunk-size`          | `-c`  | Max characters per chunk (default: 30,000)                                                              |
+| `--output`              | `-o`  | Folder to save prompt-ready chunks (default: `promptready`)                                             |
+| `--force`               | `-f`  | Force overwrite existing prompt files                                                                   |
+| `--task`                | `-t`  | Predefined task: `debug`, `comment`, `refactor`, `optimize`, `summarize`, `document`, `test`, `analyze` |
+| `--verbose`             | `-V`  | Show INFO logs                                                                                          |
+| `--dev`                 | `-D`  | Show DEBUG logs                                                                                         |
+| `--smart`               | `-s`  | Smart mode: includes only code files, ignores large/log files                                           |
+| `--no-default-excludes` | `-E`  | Disable automatic exclusion of `venv`, `promptready`, `__pycache__`                                     |
+
+## Rule of Thumb for Chunk Sizes
+
+Since snib chunks by characters, the following guidelines can help to estimate the chunk size:
+
+| Model / LLM           | Max Context (Tokens) | Recommended `--chunk-size` (Chars) | Notes                                      |
+| --------------------- | -------------------- | ---------------------------------- | ------------------------------------------ |
+| LLaMA 2 (7B/13B)      | 4,000                | 12,000 – 14,000                    | 1 token ≈ 3–4 chars                        |
+| Mistral 7B            | 8,000                | 28,000                             | Leave a safety margin                      |
+| GPT-4 classic         | 8,000                | 28,000                             |                                            |
+| GPT-4-32k             | 32,000               | 110,000                            |                                            |
+| GPT-4o / GPT-5 (128k) | 128,000              | 450,000 – 500,000                  | Very large models, massive chunks possible |
+
+## Example Project Scan
+
+```text
+#[INFO]
+Please do not give output until all prompt files are sent. Prompt file 1/4
+
+#[DESCRIPTION]
+This is a demo.
+
+#[TASK]
+Debug: Analyze the code and highlight potential errors, bugs, or inconsistencies.
+
+#[INCLUDE/EXCLUDE]
+Include patterns: ['*.py']
+Exclude patterns: ['promptready', 'dist', 'junk', 'venv', '__pycache__']
+Included files: files: 16, total size: 28.86 KB
+Excluded files: files: 1943, total size: 262.11 MB
+
+#[PROJECT TREE]
+snib
+├── src
+│   └── snib
+│       ├── __init__.py
+│       ├── __main__.py
+│       ├── chunker.py
+│       ├── cli.py
+│       ├── constants.py
+│       ├── formatter.py
+│       ├── models.py
+│       ├── scanner.py
+│       ├── utils.py
+│       └── writer.py
+└── tests
+    ├── test_chunker.py
+    ├── test_cli_scan.py
+    ├── test_formatter.py
+    ├── test_scanner.py
+    ├── test_utils.py
+    └── test_writer.py
+
+#[FILE] tests\test_chunker.py
+import pytest
+from snib.chunker import Chunker
+
+...
+
+#[INFO]
+Prompt file 4/4
+
+        for file_path in self.output_dir.glob("prompt_*.txt"):
+            if file_path.is_file():
+                file_path.unlink()
+        logger.info(f"Cleared existing prompt file(s) in {self.output_dir}")
+
+
+#[FILE] src\snib\__init__.py
+
+
+#[FILE] src\snib\__main__.py
+from .cli import main
+
+if __name__ == "__main__":
+    main()
+```
+
+After running snib, a `promptready` folder is generated with prompt files ready to get copied to the clipboard:
+
+```text
+prompt_1.txt
+...
+promt_4.txt
+```
+
+## Best Practices
+
+- Always install snib inside a virtual environment.
+- `venv` and `promptready` are automatically excluded from scans.
+- Use `--smart` to focus on code and avoid unnecessary large files.
+- Adjust `--chunk-size` based on your target LLM and the table above.
+- If followed these instructions just exclude some folders you don't need to be scanned and run snib on your project like:
+
+```bash
+snib -e "dist, junk" --chunk-size 100000 --smart --verbose
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit your changes: `git commit -m "Add new feature"`
+4. Push to branch: `git push origin feature/your-feature`
+5. Open a Pull Request
+
+## Notes
+
+- Snib is designed to be lightweight and easily integrated into CI/CD pipelines.
+- Works cross-platform (Windows, Linux, macOS).
+- Automatically inserts headers in multi-chunk outputs to guide LLM processing.
 
 
 #[FILE] tests\test_chunker.py
@@ -462,6 +639,20 @@ def parse_args():
 
 def main():
     args = parse_args()
+
+    # setup logging
+    if getattr(args, "dev", False):
+        log_level = logging.DEBUG
+    elif getattr(args, "verbose", False):
+        log_level = logging.INFO
+    else:
+        log_level = logging.WARNING
+
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    )
+
     path = Path(args.path).resolve()
     scanner = Scanner(path)
 
@@ -689,220 +880,3 @@ class Scanner:
 
     def _file_matches_filters(self, path: Path, include: list[str], exclude: list[str]) -> bool:
         for pattern in exclude:
-            # check full path vs glob + filename correct + foldernames check
-            if path.match(pattern) or path.name == pattern or pattern in path.parts:
-                return False
-            
-        if include:
-            for pattern in include:
-                # same here
-                if path.match(pattern) or path.name == pattern or pattern in path.parts:
-                    return True
-
-            return False  # nothing matched
-
-        # default: if no include -> allow all
-        return True
-
-    def _get_included_files(self, path: Path, include: list[str], exclude: list[str]) -> list[Path]:
-        matching_files = []
-
-        for file in path.rglob("*"):
-            if not file.is_file():
-                continue
-            if self._file_matches_filters(path=file, include=include, exclude=exclude):
-                matching_files.append(file)
-        
-        return matching_files
-
-    def _calculate_filter_stats(self, files: list[Path], type_label: str) -> FilterStats:
-        """
-        Calculates FilterStats for a list of files.
-        type_label: "included" or "excluded"
-        """
-        stats = FilterStats(type=type_label)
-
-        for f in files:
-            if f.is_file():
-                stats.files += 1
-                stats.size += f.stat().st_size
-
-        return stats
-
-    def scan(self, description, include, exclude, chunk_size, output_dir, force, task):
-
-        logger.info(f"Scanning {self.path}")
-
-        sections = self._collect_sections(description, include, exclude, task)
-        formatter = Formatter()
-        formatted = formatter.to_prompt_text(sections)
-
-        chunker = Chunker(chunk_size)
-        chunks = chunker.chunk(formatted)
-
-        # leave headspace for header 100 chars in chunker -> self.header_size
-        # insert header on first lines of every chunk
-
-        chunks_with_header = []
-
-        total = len(chunks)
-        for i, chunk in enumerate(chunks, 1):
-            if total <= 1:
-                header = ""
-            else:
-                header = f"Please do not give output until all prompt files are sent. Prompt file {i}/{total}\n" if i == 1 else f"Prompt file {i}/{total}\n"
-
-            # works with empty info section
-            info_texts = formatter.to_prompt_text([Section(type="info", content=header)])
-            if info_texts:
-                chunks_with_header.append(info_texts[0] + chunk)
-            else:
-                chunks_with_header.append(chunk)
-
-            #chunks_with_header.append(formatter.to_prompt_text([Section(type="info", content=header)])[0] + chunk)
-                
-        writer = Writer(output_dir)
-        writer.write_chunks(chunks_with_header, force=force)
-
-#[FILE] src\snib\utils.py
-import logging
-from pathlib import Path
-import fnmatch
-
-logger = logging.getLogger(__name__)
-
-def handle_include_args(include_list):
-    include_list = [i.strip() for i in include_list if i.strip()]
-    
-    if include_list and include_list[0].lower() != "all":
-        logging.debug(f"User include list: {include_list}")
-    else:
-        include_list = []
-        logging.debug("No user include list or 'all' specified.")
-
-    return include_list
-
-def handle_exclude_args(exclude_list):
-    exclude_list = [e.strip() for e in exclude_list if e.strip()]
-    
-    if exclude_list:
-        logging.debug(f"User exclude list: {exclude_list}")
-    else:
-        logging.debug("No user exclude list specified.")
-        
-    return exclude_list
-
-def build_tree(path: Path, include: list[str], exclude: list[str], prefix: str = "") -> list[str]:
-    """
-    Builds a tree representation of the directory with include/exclude filters.
-    - Directories are only shown if they contain at least one valid file.
-    - Files are only shown if they match the include patterns (or if include is empty = allow all).
-    """
-    ELBOW = "└──"
-    TEE = "├──"
-    PIPE_PREFIX = "│   "
-    SPACE_PREFIX = "    "
-
-    """
-    def should_include_file(entry: Path) -> bool:
-        if any(entry.match(p) or entry.name == p for p in exclude):
-            return False
-        if entry.is_file():
-            return not include or any(entry.match(p) or entry.name == p for p in include)
-        return True  # dirs -> first yes, then check later
-    """
-
-    def should_include_file(entry: Path) -> bool:
-        # excluded?
-        if any(entry.match(p) or entry.name == p for p in exclude):
-            return False
-
-        # only files, if include empty or match
-        if entry.is_file():
-            return not include or any(entry.match(p) or entry.name == p or p in entry.parts for p in include)
-
-        # folder: show if 
-        #    - include emptry or
-        #    - foldername itself in or
-        #    - any file below matches include
-        if entry.is_dir():
-            if not include or entry.name in include:
-                return True
-            # min. one file below matches include
-            return any(f.match(p) or f.name == p for p in include for f in entry.rglob("*") if f.is_file())
-
-        return True
-
-    lines = [path.name] if not prefix else []
-    entries = [e for e in sorted(path.iterdir(), key=lambda p: (p.is_file(), p.name.lower())) if should_include_file(e)]
-
-    for i, entry in enumerate(entries):
-        connector = ELBOW if i == len(entries) - 1 else TEE
-        line = f"{prefix}{connector} {entry.name}"
-
-        if entry.is_dir():
-            extension = SPACE_PREFIX if i == len(entries) - 1 else PIPE_PREFIX
-            subtree = build_tree(entry, include, exclude, prefix + extension)
-            if len(subtree) > 0:   # only append if not empty
-                lines.append(line)
-                lines.extend(subtree)
-        else:
-            lines.append(line)
-
-    return lines
-
-def format_size(size: int) -> str:
-    """Return human-readable size string."""
-    if size >= 1024**2:
-        return f"{size / (1024**2):.2f} MB"
-    elif size >= 1024:
-        return f"{size / 1024:.2f} KB"
-    return f"{size} B"
-
-def detect_pattern_conflicts(includes: list[str], excludes: list[str]) -> set[str]:
-    conflicts = set()
-    # check each include against each exclude
-    for inc in includes:
-        for exc in excludes:
-            # exact match
-            if inc == exc:
-                conflicts.add(inc)
-            # include eaten by exclude
-            elif fnmatch.fnmatch(inc, exc):
-                conflicts.add(f"{inc} (matched by {exc})")
-            # exclude is more specific than include -> overwritten
-            elif fnmatch.fnmatch(exc, inc):
-                conflicts.add(f"{inc} (conflicts with {exc})")
-    return conflicts
-
-def check_include_in_exclude(path: Path, includes: list[str], excludes: list[str]) -> list[str]:
-    """
-    Checks whether include patterns contain files that are located in an exclude folder.
-    Returns the problematic includes.
-    """
-    problematic = []
-
-    for inc in includes:
-        inc_path = path / inc
-        if not inc_path.exists():
-            continue
-        for exc in excludes:
-            exc_path = path / exc
-            # only check folders
-            if exc_path.is_dir() and exc_path in inc_path.parents:
-                problematic.append(inc)
-    return problematic
-
-#[FILE] src\snib\writer.py
-import logging
-from pathlib import Path
-
-from .utils import format_size
-
-logger = logging.getLogger(__name__)
-
-class Writer:
-    def __init__(self, output_dir: str):
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-

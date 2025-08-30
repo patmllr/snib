@@ -8,7 +8,7 @@ SMART_IGNORE_EXTENSIONS = [
     "*.log", "*.zip", "*.tar", "*.gz", "*.bin", "*.exe", "*.dll", "*.csv"
 ]
 
-DEFAULT_EXCLUDE = ["venv", "promptready", "__pycache__"]
+DEFAULT_EXCLUDE = ["venv", "promptready", "__pycache__, .git"]
 
 TASK_INSTRUCTIONS = {
     "debug": "Debug: Analyze the code and highlight potential errors, bugs, or inconsistencies.",
