@@ -110,6 +110,20 @@ def parse_args():
 
 def main():
     args = parse_args()
+
+    # setup logging
+    if getattr(args, "dev", False):
+        log_level = logging.DEBUG
+    elif getattr(args, "verbose", False):
+        log_level = logging.INFO
+    else:
+        log_level = logging.WARNING
+
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    )
+
     path = Path(args.path).resolve()
     scanner = Scanner(path)
 
