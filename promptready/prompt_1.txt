@@ -1,0 +1,892 @@
+#[INFO]
+Please do not give output until all prompt files are sent. Prompt file 1/2
+
+#[INCLUDE/EXCLUDE]
+Include patterns: 
+Exclude patterns: ['junk', 'venv', 'promptready']
+Included files: files: 34, total size: 31.54 MB
+Excluded files: files: 1832, total size: 261.93 MB
+
+#[PROJECT TREE]
+snib
+├── dist
+│   ├── snib-0.1.0-py3-none-any.whl
+│   └── snib-0.1.0.tar.gz
+├── src
+│   └── snib
+│       ├── __pycache__
+│       │   ├── __init__.cpython-313.pyc
+│       │   ├── __main__.cpython-313.pyc
+│       │   ├── chunker.cpython-313.pyc
+│       │   ├── cli.cpython-313.pyc
+│       │   ├── extensions.cpython-313.pyc
+│       │   ├── formatter.cpython-313.pyc
+│       │   ├── models.cpython-313.pyc
+│       │   ├── scanner.cpython-313.pyc
+│       │   ├── section.cpython-313.pyc
+│       │   ├── tasks.cpython-313.pyc
+│       │   ├── utils.cpython-313.pyc
+│       │   └── writer.cpython-313.pyc
+│       ├── __init__.py
+│       ├── __main__.py
+│       ├── chunker.py
+│       ├── cli.py
+│       ├── extensions.py
+│       ├── formatter.py
+│       ├── models.py
+│       ├── scanner.py
+│       ├── tasks.py
+│       ├── utils.py
+│       └── writer.py
+├── tests
+│   ├── __pycache__
+│   │   └── test_chunker.cpython-313-pytest-8.4.1.pyc
+│   ├── test_chunker.py
+│   ├── test_cli_scan.py
+│   ├── test_formatter.py
+│   ├── test_scanner.py
+│   ├── test_utils.py
+│   └── test_writer.py
+├── pyproject.toml
+└── README.md
+
+#[FILE] pyproject.toml
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "snib"
+version = "0.1.0"
+authors = [
+  { name="Patrick Müller", email="patrick.mueller.net@protonmail.com" },
+]
+description = "snib scans projects and generates prompt-ready chunks"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3.9",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Code Generators",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/patmllr/snib"
+Issues = "https://github.com/patmllr/snib/issues"
+
+[project.scripts]
+snib = "snib.__main__:main"
+
+#[FILE] README.md
+
+
+#[FILE] dist\snib-0.1.0-py3-none-any.whl
+<Could not read snib-0.1.0-py3-none-any.whl>
+
+
+#[FILE] dist\snib-0.1.0.tar.gz
+<Could not read snib-0.1.0.tar.gz>
+
+
+#[FILE] tests\test_chunker.py
+import pytest
+from snib.chunker import Chunker
+
+def test_chunker_splits_correctly():
+    chunker = Chunker(chunk_size=50)
+    sections = ["line1\nline2\nline3", "line4\nline5"]
+    chunks = chunker.chunk(sections)
+    
+    for c in chunks:
+        assert len(c) + chunker.header_size <= chunker.chunk_size
+    assert "".join(chunks) == "line1\nline2\nline3line4\nline5"
+
+def test_chunker_empty_input():
+    chunker = Chunker(chunk_size=50)
+    chunks = chunker.chunk([])
+    assert chunks == []
+
+
+#[FILE] tests\test_cli_scan.py
+import pytest
+from pathlib import Path
+from snib.scanner import Scanner
+from snib.formatter import Formatter
+from snib.chunker import Chunker
+from snib.writer import Writer
+from snib.models import Section
+
+def test_end_to_end_scan(tmp_path):
+    # -------------------------------
+    # Setup fake project files
+    # -------------------------------
+    # Create folders and files
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "file1.py").write_text("print('hello')")
+    (tmp_path / "src" / "file2.js").write_text("console.log('hi')")
+    (tmp_path / "README.md").write_text("# Project README")
+    (tmp_path / "ignore.log").write_text("This should be ignored")
+
+    # -------------------------------
+    # Initialize Scanner
+    # -------------------------------
+    scanner = Scanner(tmp_path)
+
+    include_patterns = ["*.py", "*.js"]
+    exclude_patterns = ["*.log"]
+
+    sections = scanner._collect_sections(
+        description="Test project",
+        include=include_patterns,
+        exclude=exclude_patterns,
+        task="test"
+    )
+
+    # Check sections collected
+    section_types = [s.type for s in sections]
+    assert "description" in section_types
+    assert "task" in section_types
+    assert "filters" in section_types
+    assert "tree" in section_types
+    assert any(s.type == "file" for s in sections)
+
+    # -------------------------------
+    # Formatter
+    # -------------------------------
+    formatter = Formatter()
+    formatted_texts = formatter.to_prompt_text(sections)
+    combined_text = "\n".join(formatted_texts)
+    assert "Test project" in combined_text
+    assert "file1.py" in combined_text
+    assert "file2.js" in combined_text
+    assert "ignore.log" not in combined_text
+
+    # -------------------------------
+    # Chunker
+    # -------------------------------
+    chunker = Chunker(chunk_size=200)  # small chunk for testing
+    chunks = chunker.chunk(formatted_texts)
+    assert len(chunks) >= 1
+    for c in chunks:
+        assert len(c) + chunker.header_size <= 200
+
+    # -------------------------------
+    # Writer
+    # -------------------------------
+    output_dir = tmp_path / "output"
+    writer = Writer(output_dir)
+    written_files = writer.write_chunks(chunks, force=True, ask_user=False)
+    assert all(f.exists() for f in written_files)
+    assert len(written_files) == len(chunks)
+
+    # Clear output and check
+    writer.clear_output()
+    assert not any(output_dir.glob("prompt_*.txt"))
+
+
+#[FILE] tests\test_formatter.py
+from snib.formatter import Formatter
+from snib.models import Section, FilterStats
+from pathlib import Path
+
+def test_formatter_output_sections():
+    formatter = Formatter()
+    sections = [
+        Section(type="info", content="Info text"),
+        Section(type="description", content="Desc text"),
+        Section(type="task", content="Task text"),
+        Section(type="filters", include=["*.py"], exclude=["*.log"], include_stats=FilterStats("included", 2, 2048), exclude_stats=FilterStats("excluded", 1, 1024)),
+        Section(type="tree", content="project_tree"),
+        Section(type="file", path=Path("example.py"), content="print('hello')")
+    ]
+    texts = formatter.to_prompt_text(sections)
+    combined = "\n".join(texts)
+    assert "Info text" in combined
+    assert "Desc text" in combined
+    assert "Task text" in combined
+    assert "example.py" in combined
+
+def test_formatter_size_formatting():
+    formatter = Formatter()
+    stats = FilterStats(type="included", files=1, size=500)
+    assert "500 B" in formatter._format_stats(stats)
+    stats.size = 2048
+    assert "2.00 KB" in formatter._format_stats(stats)
+    stats.size = 5 * 1024**2
+    assert "5.00 MB" in formatter._format_stats(stats)
+
+
+#[FILE] tests\test_scanner.py
+from snib.scanner import Scanner
+import pytest
+
+def test_file_matches_filters(tmp_path):
+    file_a = tmp_path / "a.py"
+    file_a.write_text("print('a')")
+    file_b = tmp_path / "b.log"
+    file_b.write_text("log")
+
+    scanner = Scanner(tmp_path)
+    assert scanner._file_matches_filters(file_a, include=["*.py"], exclude=["*.log"])
+    assert not scanner._file_matches_filters(file_b, include=["*.py"], exclude=["*.log"])
+
+def test_get_included_files(tmp_path):
+    (tmp_path / "a.py").write_text("print('a')")
+    (tmp_path / "b.log").write_text("log")
+    scanner = Scanner(tmp_path)
+    files = scanner._get_included_files(tmp_path, include=["*.py"], exclude=["*.log"])
+    assert len(files) == 1
+    assert files[0].name == "a.py"
+
+
+#[FILE] tests\test_utils.py
+from snib.utils import handle_include_args, handle_exclude_args, detect_pattern_conflicts, check_include_in_exclude, build_tree
+import pytest
+
+def test_handle_include_exclude_args():
+    assert handle_include_args([".py", " "]) == [".py"]
+    assert handle_include_args(["all"]) == []
+    assert handle_exclude_args([".log", ""]) == [".log"]
+
+def test_detect_pattern_conflicts_basic():
+    includes = ["*.py", "*.js"]
+    excludes = ["*.py", "*.txt"]
+    conflicts = detect_pattern_conflicts(includes, excludes)
+    assert "*.py" in conflicts
+
+def test_check_include_in_exclude(tmp_path):
+    inc_file = tmp_path / "include.txt"
+    inc_file.write_text("hello")
+    exc_dir = tmp_path / "exclude_dir"
+    exc_dir.mkdir()
+    problem = check_include_in_exclude(tmp_path, ["include.txt"], ["exclude_dir"])
+    assert problem == []
+
+def test_build_tree(tmp_path):
+    (tmp_path / "a").mkdir()
+    f1 = tmp_path / "a" / "file1.py"
+    f1.write_text("print('hi')")
+    tree = build_tree(tmp_path, include=["*.py"], exclude=[])
+    tree_str = "\n".join(tree)
+    assert "file1.py" in tree_str
+
+#[FILE] tests\test_writer.py
+from snib.writer import Writer
+import pytest
+
+def test_write_and_clear(tmp_path):
+    writer = Writer(tmp_path)
+    chunks = ["chunk1", "chunk2"]
+    files = writer.write_chunks(chunks, force=True, ask_user=False)
+    assert len(files) == 2
+    for f in files:
+        assert f.exists()
+    # Clear output
+    writer.clear_output()
+    assert not any(tmp_path.glob("prompt_*.txt"))
+
+
+#[FILE] tests\__pycache__\test_chunker.cpython-313-pytest-8.4.1.pyc
+<Could not read test_chunker.cpython-313-pytest-8.4.1.pyc>
+
+
+#[FILE] src\snib\chunker.py
+import logging
+
+logger = logging.getLogger(__name__)
+
+class Chunker:
+    def __init__(self, chunk_size):
+        self.chunk_size = chunk_size
+        self.header_size = 100  # reserve space for header
+
+    def chunk(self, sections):
+
+        logger.info(f"Using chunk_size={self.chunk_size} chars "
+                    f"(≈ {self.chunk_size // 4}-{self.chunk_size // 3} tokens estimated)")
+
+        chunks = []
+        current_chunk = ""
+        for section in sections:
+            lines = section.splitlines(keepends=True)
+            for line in lines:
+                if len(current_chunk) + len(line) + self.header_size > self.chunk_size:
+                    chunks.append(current_chunk)
+                    current_chunk = ""
+                current_chunk += line
+        if current_chunk:
+            chunks.append(current_chunk)
+
+        logger.debug(f"Created {len(chunks)} chunk(s)")
+
+        return chunks
+
+#[FILE] src\snib\cli.py
+import argparse
+from pathlib import Path
+import logging
+
+from .scanner import Scanner
+from .utils import handle_include_args, handle_exclude_args, detect_pattern_conflicts, check_include_in_exclude
+from .tasks import TASK_INSTRUCTIONS
+from .extensions import SMART_CODE_EXTENSIONS, SMART_IGNORE_EXTENSIONS
+
+logger = logging.getLogger(__name__)
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="snib scans projects and generates prompt-ready chunks",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+
+    # path to scan
+    parser.add_argument(
+        "--path", "-p",
+        nargs="?",
+        default=".",
+        help="Path to scan (default: current directory)"
+    )
+
+    # project description
+    parser.add_argument(
+        "--description", "-d",
+        type=str,
+        default="",
+        help="Short description of the project and changes you want to make (default: empty string)"
+    )
+
+    # include filters
+    parser.add_argument(
+        "--include", "-i",
+        type=str,
+        default="all",
+        help="Datatypes or folders/files to included, e.g. *.py, cli.py (default: all)"
+    )
+
+    # exclude filters
+    parser.add_argument(
+        "--exclude", "-e",
+        type=str,
+        default="",
+        help="Datatypes or folders/files to excluded, e.g *.pyc, __pycache__ (default: none)"
+    )
+
+    # chunk size
+    parser.add_argument(
+        "--chunk-size", "-c",
+        type=int,
+        default=30000,
+        help=("Max number of characters per chunk (default: 30000)\nRule of thumb: 1 token ≈ 3-4 chars.")
+    )
+
+    # output directory (TODO: path and name?)
+    parser.add_argument(
+        "--output", "-o",
+        type=str,
+        default="promptready",
+        help="Folder to save the prompt ready data chunks (default: 'promptready')"
+    )
+
+    # force overwrite
+    parser.add_argument(
+        "--force", "-f",
+        action="store_true",
+        help="Force delete existing prompt files and write new ones without validation"
+    )
+
+    # predefined tasks
+    parser.add_argument(
+    "--task", "-t",
+    type=str,
+    choices=TASK_INSTRUCTIONS.keys(),
+    default="",
+    help="Select a predefined task for the model, e.g. debug or test (default: none)"
+    )
+
+    # info logs
+    parser.add_argument(
+    "--verbose", "-V",
+    action="store_true",
+    help="Show INFO logs (default: WARNING only)"
+    )
+
+    # debug logs
+    parser.add_argument(
+        "--dev", "-D",
+        action="store_true",
+        help="Show DEBUG logs for development (default: WARNING only)"
+    )
+
+    # smart mode
+    parser.add_argument(
+    "--smart", "-s",
+    action="store_true",
+    help="Smart mode automatically includes only code files and ignores large data/log files"
+    )
+
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+    path = Path(args.path).resolve()
+    scanner = Scanner(path)
+
+    # user filters
+    user_include = handle_include_args(args.include.split(","))
+    user_exclude = handle_exclude_args(args.exclude.split(","))
+
+    if args.smart:
+        # combine user filters with smart defaults
+        include_patterns = list(set(user_include + SMART_CODE_EXTENSIONS))
+        exclude_patterns = list(set(user_exclude + SMART_IGNORE_EXTENSIONS))
+    else:
+        include_patterns = user_include
+        exclude_patterns = user_exclude
+
+    conflicts = detect_pattern_conflicts(include_patterns, exclude_patterns)
+    if conflicts:
+        logger.warning(f"Pattern conflicts detected (Exclude wins): {conflicts}")
+        # optional: del in include_patterns
+        include_patterns = [p for p in include_patterns if not any(p in c for c in conflicts)]
+
+    problematic_includes = check_include_in_exclude(path, include_patterns, exclude_patterns)
+    if problematic_includes:
+        logger.warning(f"The following include patterns are inside excluded folders and will be ignored: {problematic_includes}")
+        # optional: del in include_patterns
+        include_patterns = [p for p in include_patterns if not any(p in c for c in problematic_includes)]
+    
+    logger.debug(f"Final include patterns: {include_patterns}")
+    logger.debug(f"Final exclude patterns: {exclude_patterns}")
+
+    scanner.scan(
+        description=args.description,
+        include=include_patterns,
+        exclude=exclude_patterns,
+        chunk_size=args.chunk_size,
+        output_dir=args.output,
+        force=args.force,
+        task=args.task
+    )
+
+
+
+#[FILE] src\snib\extensions.py
+SMART_CODE_EXTENSIONS = [
+    "*.py", "*.js", "*.ts", "*.java", "*.cpp", "*.c", "*.cs", "*.go", "*.rb", "*.php",
+    "*.html", "*.css", "*.scss", "*.less", "*.json", "*.yaml", "*.yml", "*.xml", "*.sh",
+    "*.bat", "*.ps1", "*.pl", "*.swift", "*.kt", "*.m", "*.r", "*.sql"
+]
+
+SMART_IGNORE_EXTENSIONS = ["*.log", "*.zip", "*.tar", "*.gz", "*.bin", "*.exe", "*.dll", "*.csv"]
+
+#[FILE] src\snib\formatter.py
+import logging
+
+from .models import Section, FilterStats
+
+logger = logging.getLogger(__name__)
+
+class Formatter:
+    def to_prompt_text(self, sections: list[Section]) -> list[str]:
+        logger.debug("Converting sections to promptready text")
+        texts = []
+        for s in sections:
+            if s.type == "info":
+                if s.content:
+                    texts.append(f"#[INFO]\n{s.content}\n")
+                else:
+                    logger.info("Only one prompt file; skipping INFO section.")
+            elif s.type == "description":
+                if s.content:
+                    texts.append(f"#[DESCRIPTION]\n{s.content}\n\n")
+                else:
+                    logger.info("No description provided; skipping DESCRIPTION section.")
+            elif s.type == "task":
+                if s.content:
+                    texts.append(f"#[TASK]\n{s.content}\n\n")
+                else:
+                    logger.info("No task specified; skipping TASK section.")
+            elif s.type == "filters":
+                include_text = s.include if s.include else ""
+                exclude_text = s.exclude if s.exclude else ""
+                include_stats_text = self._format_stats(s.include_stats) if s.include_stats else ""
+                exclude_stats_text = self._format_stats(s.exclude_stats) if s.exclude_stats else ""
+                
+                texts.append(
+                    f"#[INCLUDE/EXCLUDE]\n"
+                    f"Include patterns: {include_text}\n"
+                    f"Exclude patterns: {exclude_text}\n"
+                    f"Included files: {include_stats_text}\n"
+                    f"Excluded files: {exclude_stats_text}\n\n"
+                )
+            elif s.type == "tree":
+                texts.append(f"#[PROJECT TREE]\n{s.content}\n\n")
+            elif s.type == "file":
+                texts.append(f"#[FILE] {s.path}\n{s.content}\n\n")
+        return texts
+    
+    def _format_stats(self, stats: FilterStats) -> str:
+        """
+        Formats FilterStats readably.
+        Shows number of files and total size in B/KB/MB.
+        """
+        size = stats.size
+        if size >= 1024**2:  
+            size_str = f"{size / (1024**2):.2f} MB"
+        elif size >= 1024:   
+            size_str = f"{size / 1024:.2f} KB"
+        else:               
+            size_str = f"{size} B"
+
+        return f"files: {stats.files}, total size: {size_str}"
+
+#[FILE] src\snib\models.py
+from pathlib import Path
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class FilterStats:
+    type: str
+    files: int = 0
+    size: int = 0
+
+@dataclass
+class Section:
+    type: str
+    content: str = ""   
+    path: Optional[Path] = None
+    include: Optional[list[str]] = None
+    exclude: Optional[list[str]] = None
+    include_stats: Optional[FilterStats] = None
+    exclude_stats: Optional[FilterStats] = None
+
+
+
+
+#[FILE] src\snib\scanner.py
+from pathlib import Path
+import logging
+
+from .models import Section, FilterStats
+from .formatter import Formatter
+from .chunker import Chunker
+from .writer import Writer
+from .utils import build_tree
+from .tasks import TASK_INSTRUCTIONS
+
+logger = logging.getLogger(__name__)
+
+class Scanner:
+    def __init__(self, path: Path):
+        self.path = Path(path).resolve()
+
+    def _collect_sections(self, description, include, exclude, task) -> list[Section]:
+
+        logger.debug("Collecting sections")
+
+        #included_files = self._get_included_files(self.path, include, exclude)
+        #excluded_files = self._get_included_files(self.path, exclude, include)
+        all_files = [f for f in self.path.rglob("*") if f.is_file()]
+        included_files = self._get_included_files(self.path, include, exclude)
+        excluded_files = [f for f in all_files if f not in included_files]
+
+        include_stats = self._calculate_filter_stats(included_files, "included")
+        exclude_stats = self._calculate_filter_stats(excluded_files, "excluded")
+
+        instruction = TASK_INSTRUCTIONS.get(task, "")
+
+        sections: list[Section] = []
+
+        sections.append(Section(type="description", content=description))
+        sections.append(Section(type="task", content=instruction))
+        sections.append(Section(type="filters", include=include, exclude=exclude, include_stats=include_stats, exclude_stats=exclude_stats))
+        sections.append(Section(type="tree", content="\n".join(build_tree(path=self.path, include=include, exclude=exclude))))
+
+        for file_path in self._get_included_files(self.path, include, exclude):
+            try:
+                content = file_path.read_text(encoding="utf-8")
+            except Exception:
+                content = f"<Could not read {file_path.name}>\n"
+            sections.append(Section(type="file", path=file_path.relative_to(self.path), content=content))
+
+        logger.debug(f"Collected {len(sections)} sections")
+
+        return sections
+    
+    """
+    def _file_matches_filters(self, path: Path, include: list[str], exclude: list[str]) -> bool:
+        for pattern in exclude:
+            # file itself or full match
+            if path.match(pattern) or path.name == pattern:
+                return False
+            # NEW: also test folder names in the path!!!
+            if any(part == pattern for part in path.parts):
+                return False
+            
+        if include:
+            return any(path.match(pattern) or path.name == pattern for pattern in include)
+
+        return True
+    """
+
+    def _file_matches_filters(self, path: Path, include: list[str], exclude: list[str]) -> bool:
+        for pattern in exclude:
+            # check full path vs glob + filename correct + foldernames check
+            if path.match(pattern) or path.name == pattern or pattern in path.parts:
+                return False
+            
+        if include:
+            for pattern in include:
+                # same here
+                if path.match(pattern) or path.name == pattern or pattern in path.parts:
+                    return True
+
+            return False  # nothing matched
+
+        # default: if no include -> allow all
+        return True
+
+    def _get_included_files(self, path: Path, include: list[str], exclude: list[str]) -> list[Path]:
+        matching_files = []
+
+        for file in path.rglob("*"):
+            if not file.is_file():
+                continue
+            if self._file_matches_filters(path=file, include=include, exclude=exclude):
+                matching_files.append(file)
+        
+        return matching_files
+
+    def _calculate_filter_stats(self, files: list[Path], type_label: str) -> FilterStats:
+        """
+        Calculates FilterStats for a list of files.
+        type_label: "included" or "excluded"
+        """
+        stats = FilterStats(type=type_label)
+
+        for f in files:
+            if f.is_file():
+                stats.files += 1
+                stats.size += f.stat().st_size
+
+        return stats
+
+    def scan(self, description, include, exclude, chunk_size, output_dir, force, task):
+
+        logger.info(f"Scanning {self.path}")
+
+        sections = self._collect_sections(description, include, exclude, task)
+        formatter = Formatter()
+        formatted = formatter.to_prompt_text(sections)
+
+        chunker = Chunker(chunk_size)
+        chunks = chunker.chunk(formatted)
+
+        # leave headspace for header 100 chars in chunker -> self.header_size
+        # insert header on first lines of every chunk
+
+        chunks_with_header = []
+
+        total = len(chunks)
+        for i, chunk in enumerate(chunks, 1):
+            if total <= 1:
+                header = ""
+            else:
+                header = f"Please do not give output until all prompt files are sent. Prompt file {i}/{total}\n" if i == 1 else f"Prompt file {i}/{total}\n"
+
+            # works with empty info section
+            info_texts = formatter.to_prompt_text([Section(type="info", content=header)])
+            if info_texts:
+                chunks_with_header.append(info_texts[0] + chunk)
+            else:
+                chunks_with_header.append(chunk)
+
+            #chunks_with_header.append(formatter.to_prompt_text([Section(type="info", content=header)])[0] + chunk)
+                
+        writer = Writer(output_dir)
+        writer.write_chunks(chunks_with_header, force=force)
+
+#[FILE] src\snib\tasks.py
+TASK_INSTRUCTIONS = {
+    "debug": "Debug: Analyze the code and highlight potential errors, bugs, or inconsistencies.",
+    "comment": "Comment: Add comments or explain existing functions and code sections.",
+    "refactor": "Refactor: Suggest refactorings to make the code cleaner, more readable, and maintainable.",
+    "optimize": "Optimize: Improve efficiency or performance of the code.",
+    "summarize": "Summarize: Provide a concise summary of the files or modules.",
+    "document": "Document: Generate documentation for functions, classes, or modules.",
+    "test": "Test: Create unit tests or test cases for the code.",
+    "analyze": "Analyze: Perform static analysis or security checks on the code."
+}
+
+#[FILE] src\snib\utils.py
+import logging
+from pathlib import Path
+import fnmatch
+
+logger = logging.getLogger(__name__)
+
+def handle_include_args(include_list):
+    include_list = [i.strip() for i in include_list if i.strip()]
+    
+    if include_list and include_list[0].lower() != "all":
+        logging.debug(f"User include list: {include_list}")
+    else:
+        include_list = []
+        logging.debug("No user include list or 'all' specified.")
+
+    return include_list
+
+def handle_exclude_args(exclude_list):
+    exclude_list = [e.strip() for e in exclude_list if e.strip()]
+    
+    if exclude_list:
+        logging.debug(f"User exclude list: {exclude_list}")
+    else:
+        logging.debug("No user exclude list specified.")
+        
+    return exclude_list
+
+def build_tree(path: Path, include: list[str], exclude: list[str], prefix: str = "") -> list[str]:
+    """
+    Builds a tree representation of the directory with include/exclude filters.
+    - Directories are only shown if they contain at least one valid file.
+    - Files are only shown if they match the include patterns (or if include is empty = allow all).
+    """
+    ELBOW = "└──"
+    TEE = "├──"
+    PIPE_PREFIX = "│   "
+    SPACE_PREFIX = "    "
+
+    """
+    def should_include_file(entry: Path) -> bool:
+        if any(entry.match(p) or entry.name == p for p in exclude):
+            return False
+        if entry.is_file():
+            return not include or any(entry.match(p) or entry.name == p for p in include)
+        return True  # dirs -> first yes, then check later
+    """
+
+    def should_include_file(entry: Path) -> bool:
+        # excluded?
+        if any(entry.match(p) or entry.name == p for p in exclude):
+            return False
+
+        # only files, if include empty or match
+        if entry.is_file():
+            return not include or any(entry.match(p) or entry.name == p or p in entry.parts for p in include)
+
+        # folder: show if 
+        #    - include emptry or
+        #    - foldername itself in or
+        #    - any file below matches include
+        if entry.is_dir():
+            if not include or entry.name in include:
+                return True
+            # min. one file below matches include
+            return any(f.match(p) or f.name == p for p in include for f in entry.rglob("*") if f.is_file())
+
+        return True
+
+    lines = [path.name] if not prefix else []
+    entries = [e for e in sorted(path.iterdir(), key=lambda p: (p.is_file(), p.name.lower())) if should_include_file(e)]
+
+    for i, entry in enumerate(entries):
+        connector = ELBOW if i == len(entries) - 1 else TEE
+        line = f"{prefix}{connector} {entry.name}"
+
+        if entry.is_dir():
+            extension = SPACE_PREFIX if i == len(entries) - 1 else PIPE_PREFIX
+            subtree = build_tree(entry, include, exclude, prefix + extension)
+            if len(subtree) > 0:   # only append if not empty
+                lines.append(line)
+                lines.extend(subtree)
+        else:
+            lines.append(line)
+
+    return lines
+
+def format_size(size: int) -> str:
+    """Return human-readable size string."""
+    if size >= 1024**2:
+        return f"{size / (1024**2):.2f} MB"
+    elif size >= 1024:
+        return f"{size / 1024:.2f} KB"
+    return f"{size} B"
+
+def detect_pattern_conflicts(includes: list[str], excludes: list[str]) -> set[str]:
+    conflicts = set()
+    # check each include against each exclude
+    for inc in includes:
+        for exc in excludes:
+            # exact match
+            if inc == exc:
+                conflicts.add(inc)
+            # include eaten by exclude
+            elif fnmatch.fnmatch(inc, exc):
+                conflicts.add(f"{inc} (matched by {exc})")
+            # exclude is more specific than include -> overwritten
+            elif fnmatch.fnmatch(exc, inc):
+                conflicts.add(f"{inc} (conflicts with {exc})")
+    return conflicts
+
+def check_include_in_exclude(path: Path, includes: list[str], excludes: list[str]) -> list[str]:
+    """
+    Checks whether include patterns contain files that are located in an exclude folder.
+    Returns the problematic includes.
+    """
+    problematic = []
+
+    for inc in includes:
+        inc_path = path / inc
+        if not inc_path.exists():
+            continue
+        for exc in excludes:
+            exc_path = path / exc
+            # only check folders
+            if exc_path.is_dir() and exc_path in inc_path.parents:
+                problematic.append(inc)
+    return problematic
+
+#[FILE] src\snib\writer.py
+import logging
+from pathlib import Path
+
+from .utils import format_size
+
+logger = logging.getLogger(__name__)
+
+class Writer:
+    def __init__(self, output_dir: str):
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def write_chunks(self, chunks: list[str], force: bool = False, ask_user: bool = True) -> list[Path]:
+        """
+        Writes chunks to text files in the output directory.
+        - force: overwrite existing files without asking
+        - ask_user: prompt user for confirmation (ignored if force=True)
+        """
+        logger.debug(f"Begin writing {len(chunks)} chunk(s) to {self.output_dir}")
+
+        # Clear existing prompt files if needed
+        if any(self.output_dir.glob("prompt_*.txt")):
+            if force:
+                self.clear_output()
+            elif ask_user:
+                if input(f"Output directory '{self.output_dir}' contains prompt file(s). Clear them? (y/n): ").lower() == 'y':
+                    self.clear_output()
+
+        txt_files = []
+
+        total_size = sum(len(c.encode("utf-8")) for c in chunks)
+        size_str = format_size(total_size)
+
+        # Ask before writing
+        if not force and ask_user:
+            proceed = input(f"Do you want to write {len(chunks)} prompt file(s) (total size {size_str}) to '{self.output_dir}'? (y/n): ").lower()
+            if proceed != 'y':

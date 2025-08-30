@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "snib"
+version = "0.1.0"
+authors = [
+  { name="Patrick Müller", email="patrick.mueller.net@protonmail.com" },
+]
+description = "snib scans projects and generates prompt-ready chunks"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3.9",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Code Generators",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/patmllr/snib"
+Issues = "https://github.com/patmllr/snib/issues"
+
+[project.scripts]
+snib = "snib.__main__:main"
