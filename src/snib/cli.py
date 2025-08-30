@@ -4,8 +4,7 @@ import logging
 
 from .scanner import Scanner
 from .utils import handle_include_args, handle_exclude_args, detect_pattern_conflicts, check_include_in_exclude
-from .tasks import TASK_INSTRUCTIONS
-from .extensions import SMART_CODE_EXTENSIONS, SMART_IGNORE_EXTENSIONS
+from .constants import SMART_CODE_EXTENSIONS, SMART_IGNORE_EXTENSIONS, DEFAULT_EXCLUDE, TASK_INSTRUCTIONS
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +99,13 @@ def parse_args():
     help="Smart mode automatically includes only code files and ignores large data/log files"
     )
 
+    # smart default exclude override
+    parser.add_argument(
+        "--no-default-excludes", "-E",
+        action="store_true",
+        help="Disable automatic exclusion of venv, promptready, __pycache__ folders"
+    )
+
     return parser.parse_args()
 
 def main():
@@ -110,14 +116,22 @@ def main():
     # user filters
     user_include = handle_include_args(args.include.split(","))
     user_exclude = handle_exclude_args(args.exclude.split(","))
+    logger.debug(f"user_exclude after handle_exclude_args: {user_exclude}")
 
+    # add default excludes automatically unless disabled by user
+    if not args.no_default_excludes:
+        exclude_patterns = list(set(user_exclude + DEFAULT_EXCLUDE))
+        logger.debug(f"Combined exclude patterns: {exclude_patterns}")
+    else:
+        exclude_patterns = user_exclude
+
+    # combine user filters with smart defaults if smart mode is enabled
     if args.smart:
-        # combine user filters with smart defaults
         include_patterns = list(set(user_include + SMART_CODE_EXTENSIONS))
-        exclude_patterns = list(set(user_exclude + SMART_IGNORE_EXTENSIONS))
+        exclude_patterns = list(set(exclude_patterns + SMART_IGNORE_EXTENSIONS))
     else:
         include_patterns = user_include
-        exclude_patterns = user_exclude
+        exclude_patterns = exclude_patterns
 
     conflicts = detect_pattern_conflicts(include_patterns, exclude_patterns)
     if conflicts:

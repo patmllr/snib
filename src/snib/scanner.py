@@ -6,7 +6,7 @@ from .formatter import Formatter
 from .chunker import Chunker
 from .writer import Writer
 from .utils import build_tree
-from .tasks import TASK_INSTRUCTIONS
+from .constants import TASK_INSTRUCTIONS
 
 logger = logging.getLogger(__name__)
 

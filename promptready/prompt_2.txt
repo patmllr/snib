@@ -1,6 +1,31 @@
 #[INFO]
 Prompt file 2/2
 
+    def write_chunks(self, chunks: list[str], force: bool = False, ask_user: bool = True) -> list[Path]:
+        """
+        Writes chunks to text files in the output directory.
+        - force: overwrite existing files without asking
+        - ask_user: prompt user for confirmation (ignored if force=True)
+        """
+        logger.debug(f"Begin writing {len(chunks)} chunk(s) to {self.output_dir}")
+
+        # Clear existing prompt files if needed
+        if any(self.output_dir.glob("prompt_*.txt")):
+            if force:
+                self.clear_output()
+            elif ask_user:
+                if input(f"Output directory '{self.output_dir}' contains prompt file(s). Clear them? (y/n): ").lower() == 'y':
+                    self.clear_output()
+
+        txt_files = []
+
+        total_size = sum(len(c.encode("utf-8")) for c in chunks)
+        size_str = format_size(total_size)
+
+        # Ask before writing
+        if not force and ask_user:
+            proceed = input(f"Do you want to write {len(chunks)} prompt file(s) (total size {size_str}) to '{self.output_dir}'? (y/n): ").lower()
+            if proceed != 'y':
                 logger.info("User aborted writing prompt files.")
                 return []
 
@@ -42,52 +67,4 @@ if __name__ == "__main__":
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
     )
     main()
-
-#[FILE] src\snib\__pycache__\chunker.cpython-313.pyc
-<Could not read chunker.cpython-313.pyc>
-
-
-#[FILE] src\snib\__pycache__\cli.cpython-313.pyc
-<Could not read cli.cpython-313.pyc>
-
-
-#[FILE] src\snib\__pycache__\extensions.cpython-313.pyc
-<Could not read extensions.cpython-313.pyc>
-
-
-#[FILE] src\snib\__pycache__\formatter.cpython-313.pyc
-<Could not read formatter.cpython-313.pyc>
-
-
-#[FILE] src\snib\__pycache__\models.cpython-313.pyc
-<Could not read models.cpython-313.pyc>
-
-
-#[FILE] src\snib\__pycache__\scanner.cpython-313.pyc
-<Could not read scanner.cpython-313.pyc>
-
-
-#[FILE] src\snib\__pycache__\section.cpython-313.pyc
-<Could not read section.cpython-313.pyc>
-
-
-#[FILE] src\snib\__pycache__\tasks.cpython-313.pyc
-<Could not read tasks.cpython-313.pyc>
-
-
-#[FILE] src\snib\__pycache__\utils.cpython-313.pyc
-<Could not read utils.cpython-313.pyc>
-
-
-#[FILE] src\snib\__pycache__\writer.cpython-313.pyc
-<Could not read writer.cpython-313.pyc>
-
-
-#[FILE] src\snib\__pycache__\__init__.cpython-313.pyc
-<Could not read __init__.cpython-313.pyc>
-
-
-#[FILE] src\snib\__pycache__\__main__.cpython-313.pyc
-<Could not read __main__.cpython-313.pyc>
-
 
