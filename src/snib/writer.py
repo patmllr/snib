@@ -23,7 +23,7 @@ class Writer:
             if force:
                 self.clear_output()
             elif ask_user:
-                if input(f"Output directory '{self.output_dir}' contains prompt file(s). Clear them? (y/n): ").lower() == 'y':
+                if input(f"Output directory '{self.output_dir}' contains prompt file(s). Clear them? [y/N]: ").lower() == 'y':
                     self.clear_output()
 
         txt_files = []
@@ -33,7 +33,7 @@ class Writer:
 
         # Ask before writing
         if not force and ask_user:
-            proceed = input(f"Do you want to write {len(chunks)} prompt file(s) (total size {size_str}) to '{self.output_dir}'? (y/n): ").lower()
+            proceed = input(f"Do you want to write {len(chunks)} prompt file(s) (total size {size_str}) to '{self.output_dir}'? [y/N]: ").lower()
             if proceed != 'y':
                 logger.info("User aborted writing prompt files.")
                 return []

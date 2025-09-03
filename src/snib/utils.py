@@ -1,6 +1,12 @@
 import logging
 from pathlib import Path
 import fnmatch
+from click import Choice
+import toml
+from importlib import resources
+
+from . import presets  # reference to snib.presets
+from .config import DEFAULT_CONFIG, load_config
 
 logger = logging.getLogger(__name__)
 
@@ -125,3 +131,27 @@ def check_include_in_exclude(path: Path, includes: list[str], excludes: list[str
             if exc_path.is_dir() and exc_path in inc_path.parents:
                 problematic.append(inc)
     return problematic
+
+def get_task_choices() -> list[str]:
+    try:
+        config = load_config()
+        return Choice(list(config["instruction"]["task_dict"].keys()))
+    except FileNotFoundError:
+        return Choice(list(DEFAULT_CONFIG["instruction"]["task_dict"].keys()))
+    
+def load_preset(name: str) -> dict: #TODO: move to config.py
+    preset_file = f"{name}.toml"
+    try:
+        with resources.open_text(presets, preset_file) as f:
+            return toml.load(f)
+    except FileNotFoundError:
+        raise ValueError(f"Preset '{name}' not found")
+    
+def get_preset_choices() -> list[str]:
+    """Return available preset names without extension."""
+    try:
+        files = resources.files(presets).iterdir()
+        return Choice([f.name.rsplit(".", 1)[0] for f in files if f.name.endswith(".toml")])
+    except FileNotFoundError:
+        # if package is not installed right
+        return []

@@ -6,13 +6,13 @@ from .formatter import Formatter
 from .chunker import Chunker
 from .writer import Writer
 from .utils import build_tree
-from .constants import TASK_INSTRUCTIONS
 
 logger = logging.getLogger(__name__)
 
 class Scanner:
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, config: dict): # TODO: add config to all module classes constructors if needed
         self.path = Path(path).resolve()
+        self.config = config
 
     def _collect_sections(self, description, include, exclude, task) -> list[Section]:
 
@@ -27,7 +27,8 @@ class Scanner:
         include_stats = self._calculate_filter_stats(included_files, "included")
         exclude_stats = self._calculate_filter_stats(excluded_files, "excluded")
 
-        instruction = TASK_INSTRUCTIONS.get(task, "")
+        task_dict = self.config["instruction"]["task_dict"]
+        instruction = task_dict.get(task, "")
 
         sections: list[Section] = []
 

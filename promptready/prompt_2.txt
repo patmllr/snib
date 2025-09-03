@@ -1,6 +1,120 @@
 #[INFO]
 Prompt file 2/2
 
+            elif s.type == "tree":
+                texts.append(f"#[PROJECT TREE]\n{s.content}\n\n")
+            elif s.type == "file":
+                texts.append(f"#[FILE] {s.path}\n{s.content}\n\n")
+        return texts
+    
+    def _format_stats(self, stats: FilterStats) -> str:
+        """
+        Formats FilterStats readably.
+        Shows number of files and total size in B/KB/MB.
+        """
+        size = stats.size
+        if size >= 1024**2:  
+            size_str = f"{size / (1024**2):.2f} MB"
+        elif size >= 1024:   
+            size_str = f"{size / 1024:.2f} KB"
+        else:               
+            size_str = f"{size} B"
+
+        return f"files: {stats.files}, total size: {size_str}"
+
+#[FILE] src\snib\models.py
+from pathlib import Path
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class FilterStats:
+    type: str
+    files: int = 0
+    size: int = 0
+
+@dataclass
+class Section:
+    type: str
+    content: str = ""   
+    path: Optional[Path] = None
+    include: Optional[list[str]] = None
+    exclude: Optional[list[str]] = None
+    include_stats: Optional[FilterStats] = None
+    exclude_stats: Optional[FilterStats] = None
+
+
+
+
+#[FILE] src\snib\scanner.py
+from pathlib import Path
+import logging
+
+from .models import Section, FilterStats
+from .formatter import Formatter
+from .chunker import Chunker
+from .writer import Writer
+from .utils import build_tree
+
+logger = logging.getLogger(__name__)
+
+class Scanner:
+    def __init__(self, path: Path, config: dict): # TODO: add config to all module classes constructors if needed
+        self.path = Path(path).resolve()
+        self.config = config
+
+    def _collect_sections(self, description, include, exclude, task) -> list[Section]:
+
+        logger.debug("Collecting sections")
+
+        #included_files = self._get_included_files(self.path, include, exclude)
+        #excluded_files = self._get_included_files(self.path, exclude, include)
+        all_files = [f for f in self.path.rglob("*") if f.is_file()]
+        included_files = self._get_included_files(self.path, include, exclude)
+        excluded_files = [f for f in all_files if f not in included_files]
+
+        include_stats = self._calculate_filter_stats(included_files, "included")
+        exclude_stats = self._calculate_filter_stats(excluded_files, "excluded")
+
+        task_dict = self.config["instruction"]["task_dict"]
+        instruction = task_dict.get(task, "")
+
+        sections: list[Section] = []
+
+        sections.append(Section(type="description", content=description))
+        sections.append(Section(type="task", content=instruction))
+        sections.append(Section(type="filters", include=include, exclude=exclude, include_stats=include_stats, exclude_stats=exclude_stats))
+        sections.append(Section(type="tree", content="\n".join(build_tree(path=self.path, include=include, exclude=exclude))))
+
+        for file_path in self._get_included_files(self.path, include, exclude):
+            try:
+                content = file_path.read_text(encoding="utf-8")
+            except Exception:
+                content = f"<Could not read {file_path.name}>\n"
+            sections.append(Section(type="file", path=file_path.relative_to(self.path), content=content))
+
+        logger.debug(f"Collected {len(sections)} sections")
+
+        return sections
+    
+    """
+    def _file_matches_filters(self, path: Path, include: list[str], exclude: list[str]) -> bool:
+        for pattern in exclude:
+            # file itself or full match
+            if path.match(pattern) or path.name == pattern:
+                return False
+            # NEW: also test folder names in the path!!!
+            if any(part == pattern for part in path.parts):
+                return False
+            
+        if include:
+            return any(path.match(pattern) or path.name == pattern for pattern in include)
+
+        return True
+    """
+
+    def _file_matches_filters(self, path: Path, include: list[str], exclude: list[str]) -> bool:
+        for pattern in exclude:
             # check full path vs glob + filename correct + foldernames check
             if path.match(pattern) or path.name == pattern or pattern in path.parts:
                 return False
@@ -80,6 +194,12 @@ Prompt file 2/2
 import logging
 from pathlib import Path
 import fnmatch
+from click import Choice
+import toml
+from importlib import resources
+
+from . import presets  # reference to snib.presets
+from .config import DEFAULT_CONFIG, load_config
 
 logger = logging.getLogger(__name__)
 
@@ -205,6 +325,30 @@ def check_include_in_exclude(path: Path, includes: list[str], excludes: list[str
                 problematic.append(inc)
     return problematic
 
+def get_task_choices() -> list[str]:
+    try:
+        config = load_config()
+        return Choice(list(config["instruction"]["task_dict"].keys()))
+    except FileNotFoundError:
+        return Choice(list(DEFAULT_CONFIG["instruction"]["task_dict"].keys()))
+    
+def load_preset(name: str) -> dict: #TODO: move to config.py
+    preset_file = f"{name}.toml"
+    try:
+        with resources.open_text(presets, preset_file) as f:
+            return toml.load(f)
+    except FileNotFoundError:
+        raise ValueError(f"Preset '{name}' not found")
+    
+def get_preset_choices() -> list[str]:
+    """Return available preset names without extension."""
+    try:
+        files = resources.files(presets).iterdir()
+        return Choice([f.name.rsplit(".", 1)[0] for f in files if f.name.endswith(".toml")])
+    except FileNotFoundError:
+        # if package is not installed right
+        return []
+
 #[FILE] src\snib\writer.py
 import logging
 from pathlib import Path
@@ -231,7 +375,7 @@ class Writer:
             if force:
                 self.clear_output()
             elif ask_user:
-                if input(f"Output directory '{self.output_dir}' contains prompt file(s). Clear them? (y/n): ").lower() == 'y':
+                if input(f"Output directory '{self.output_dir}' contains prompt file(s). Clear them? [y/N]: ").lower() == 'y':
                     self.clear_output()
 
         txt_files = []
@@ -241,7 +385,7 @@ class Writer:
 
         # Ask before writing
         if not force and ask_user:
-            proceed = input(f"Do you want to write {len(chunks)} prompt file(s) (total size {size_str}) to '{self.output_dir}'? (y/n): ").lower()
+            proceed = input(f"Do you want to write {len(chunks)} prompt file(s) (total size {size_str}) to '{self.output_dir}'? [y/N]: ").lower()
             if proceed != 'y':
                 logger.info("User aborted writing prompt files.")
                 return []
@@ -265,8 +409,46 @@ class Writer:
 
 
 #[FILE] src\snib\__main__.py
-from .cli import main
+from .cli import app
 
 if __name__ == "__main__":
-    main()
+    app()
+
+#[FILE] src\snib\presets\unity.toml
+[project]
+path = "."
+description = ""
+
+[instruction]
+task = ""
+
+[filters]
+include = ["*.cs", "*.shader", "*.prefab", "*.unity"]
+exclude = ["*.log", "*.meta", "Library", "Temp", "obj"]
+smart_include = []
+smart_exclude = []
+default_exclude = ["venv", "promptready", ".git"]
+no_default_exclude = false
+smart = false
+
+[output]
+dir = "promptready"
+chunk_size = 30000
+force = false
+
+[ai]
+model = "gpt-4"
+
+[instruction.task_dict]
+debug = "Debug: Analyze the code and highlight potential errors, bugs, or inconsistencies."
+comment = "Comment: Add comments or explain existing functions and code sections."
+refactor = "Refactor: Suggest refactorings to make the code cleaner, more readable, and maintainable."
+optimize = "Optimize: Improve efficiency or performance of the code."
+summarize = "Summarize: Provide a concise summary of the files or modules."
+document = "Document: Generate documentation for functions, classes, or modules."
+test = "Test: Create unit tests or test cases for the code."
+analyze = "Analyze: Perform static analysis or security checks on the code."
+
+#[FILE] src\snib\presets\unreal.toml
+
 

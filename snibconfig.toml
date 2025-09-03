@@ -1,0 +1,33 @@
+[project]
+path = "."
+description = ""
+
+[instruction]
+task = ""
+
+[filters]
+include = []
+exclude = []
+smart_include = [ "*.py", "*.js", "*.ts", "*.java", "*.cpp", "*.c", "*.cs", "*.go", "*.rb", "*.php", "*.html", "*.css", "*.scss", "*.less", "*.json", "*.yaml", "*.yml", "*.xml", "*.sh", "*.bat", "*.ps1", "*.pl", "*.swift", "*.kt", "*.m", "*.r", "*.sql",]
+smart_exclude = [ "*.log", "*.zip", "*.tar", "*.gz", "*.bin", "*.exe", "*.dll", "*.csv",]
+default_exclude = [ "venv", "promptready", "__pycache__", ".git", "snibconfig.toml",]
+no_default_exclude = false
+smart = false
+
+[output]
+dir = "promptready"
+chunk_size = 30000
+force = false
+
+[ai]
+model = "gpt-4"
+
+[instruction.task_dict]
+debug = "Debug: Analyze the code and highlight potential errors, bugs, or inconsistencies."
+comment = "Comment: Add comments or explain existing functions and code sections."
+refactor = "Refactor: Suggest refactorings to make the code cleaner, more readable, and maintainable."
+optimize = "Optimize: Improve efficiency or performance of the code."
+summarize = "Summarize: Provide a concise summary of the files or modules."
+document = "Document: Generate documentation for functions, classes, or modules."
+test = "Test: Create unit tests or test cases for the code."
+analyze = "Analyze: Perform static analysis or security checks on the code."

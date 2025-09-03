@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "snib"
-version = "0.2.1"
+version = "0.3.0"
 authors = [
   { name="Patrick Müller", email="patrick.mueller.net@protonmail.com" },
 ]
@@ -26,4 +26,12 @@ Homepage = "https://github.com/patmllr/snib"
 Issues = "https://github.com/patmllr/snib/issues"
 
 [project.scripts]
-snib = "snib.__main__:main"
+snib = "snib.__main__:app"
+
+[project.dependencies]
+typer = { extras = ["all"], version = ">=0.9.0" }
+
+[tool.hatch.build.targets.wheel]
+include = [
+    "snib/presets/*.toml"
+]
