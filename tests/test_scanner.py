@@ -1,5 +1,7 @@
-from snib.scanner import Scanner
 import pytest
+
+from snib.scanner import Scanner
+
 
 def test_file_matches_filters(tmp_path):
     file_a = tmp_path / "a.py"
@@ -9,7 +11,10 @@ def test_file_matches_filters(tmp_path):
 
     scanner = Scanner(tmp_path)
     assert scanner._file_matches_filters(file_a, include=["*.py"], exclude=["*.log"])
-    assert not scanner._file_matches_filters(file_b, include=["*.py"], exclude=["*.log"])
+    assert not scanner._file_matches_filters(
+        file_b, include=["*.py"], exclude=["*.log"]
+    )
+
 
 def test_get_included_files(tmp_path):
     (tmp_path / "a.py").write_text("print('a')")

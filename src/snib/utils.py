@@ -1,18 +1,20 @@
-import logging
-from pathlib import Path
 import fnmatch
-from click import Choice
-import toml
+import logging
 from importlib import resources
+from pathlib import Path
+
+import toml
+from click import Choice
 
 from . import presets  # reference to snib.presets
 from .config import DEFAULT_CONFIG, load_config
 
 logger = logging.getLogger(__name__)
 
+
 def handle_include_args(include_list):
     include_list = [i.strip() for i in include_list if i.strip()]
-    
+
     if include_list and include_list[0].lower() != "all":
         logging.debug(f"User include list: {include_list}")
     else:
@@ -21,17 +23,21 @@ def handle_include_args(include_list):
 
     return include_list
 
+
 def handle_exclude_args(exclude_list):
     exclude_list = [e.strip() for e in exclude_list if e.strip()]
-    
+
     if exclude_list:
         logging.debug(f"User exclude list: {exclude_list}")
     else:
         logging.debug("No user exclude list specified.")
-        
+
     return exclude_list
 
-def build_tree(path: Path, include: list[str], exclude: list[str], prefix: str = "") -> list[str]:
+
+def build_tree(
+    path: Path, include: list[str], exclude: list[str], prefix: str = ""
+) -> list[str]:
     """
     Builds a tree representation of the directory with include/exclude filters.
     - Directories are only shown if they contain at least one valid file.
@@ -58,9 +64,11 @@ def build_tree(path: Path, include: list[str], exclude: list[str], prefix: str =
 
         # only files, if include empty or match
         if entry.is_file():
-            return not include or any(entry.match(p) or entry.name == p or p in entry.parts for p in include)
+            return not include or any(
+                entry.match(p) or entry.name == p or p in entry.parts for p in include
+            )
 
-        # folder: show if 
+        # folder: show if
         #    - include emptry or
         #    - foldername itself in or
         #    - any file below matches include
@@ -68,12 +76,21 @@ def build_tree(path: Path, include: list[str], exclude: list[str], prefix: str =
             if not include or entry.name in include:
                 return True
             # min. one file below matches include
-            return any(f.match(p) or f.name == p for p in include for f in entry.rglob("*") if f.is_file())
+            return any(
+                f.match(p) or f.name == p
+                for p in include
+                for f in entry.rglob("*")
+                if f.is_file()
+            )
 
         return True
 
     lines = [path.name] if not prefix else []
-    entries = [e for e in sorted(path.iterdir(), key=lambda p: (p.is_file(), p.name.lower())) if should_include_file(e)]
+    entries = [
+        e
+        for e in sorted(path.iterdir(), key=lambda p: (p.is_file(), p.name.lower()))
+        if should_include_file(e)
+    ]
 
     for i, entry in enumerate(entries):
         connector = ELBOW if i == len(entries) - 1 else TEE
@@ -82,13 +99,14 @@ def build_tree(path: Path, include: list[str], exclude: list[str], prefix: str =
         if entry.is_dir():
             extension = SPACE_PREFIX if i == len(entries) - 1 else PIPE_PREFIX
             subtree = build_tree(entry, include, exclude, prefix + extension)
-            if len(subtree) > 0:   # only append if not empty
+            if len(subtree) > 0:  # only append if not empty
                 lines.append(line)
                 lines.extend(subtree)
         else:
             lines.append(line)
 
     return lines
+
 
 def format_size(size: int) -> str:
     """Return human-readable size string."""
@@ -97,6 +115,7 @@ def format_size(size: int) -> str:
     elif size >= 1024:
         return f"{size / 1024:.2f} KB"
     return f"{size} B"
+
 
 def detect_pattern_conflicts(includes: list[str], excludes: list[str]) -> set[str]:
     conflicts = set()
@@ -114,7 +133,10 @@ def detect_pattern_conflicts(includes: list[str], excludes: list[str]) -> set[st
                 conflicts.add(f"{inc} (conflicts with {exc})")
     return conflicts
 
-def check_include_in_exclude(path: Path, includes: list[str], excludes: list[str]) -> list[str]:
+
+def check_include_in_exclude(
+    path: Path, includes: list[str], excludes: list[str]
+) -> list[str]:
     """
     Checks whether include patterns contain files that are located in an exclude folder.
     Returns the problematic includes.
@@ -132,26 +154,22 @@ def check_include_in_exclude(path: Path, includes: list[str], excludes: list[str
                 problematic.append(inc)
     return problematic
 
+
 def get_task_choices() -> list[str]:
     try:
         config = load_config()
         return Choice(list(config["instruction"]["task_dict"].keys()))
     except FileNotFoundError:
         return Choice(list(DEFAULT_CONFIG["instruction"]["task_dict"].keys()))
-    
-def load_preset(name: str) -> dict: #TODO: move to config.py
-    preset_file = f"{name}.toml"
-    try:
-        with resources.open_text(presets, preset_file) as f:
-            return toml.load(f)
-    except FileNotFoundError:
-        raise ValueError(f"Preset '{name}' not found")
-    
+
+
 def get_preset_choices() -> list[str]:
     """Return available preset names without extension."""
     try:
         files = resources.files(presets).iterdir()
-        return Choice([f.name.rsplit(".", 1)[0] for f in files if f.name.endswith(".toml")])
+        return Choice(
+            [f.name.rsplit(".", 1)[0] for f in files if f.name.endswith(".toml")]
+        )
     except FileNotFoundError:
         # if package is not installed right
         return []

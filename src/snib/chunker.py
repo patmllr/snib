@@ -2,6 +2,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class Chunker:
     def __init__(self, chunk_size):
         self.chunk_size = chunk_size
@@ -9,8 +10,10 @@ class Chunker:
 
     def chunk(self, sections):
 
-        logger.info(f"Using chunk_size={self.chunk_size} chars "
-                    f"(≈ {self.chunk_size // 4}-{self.chunk_size // 3} tokens estimated)")
+        logger.info(
+            f"Using chunk_size={self.chunk_size} chars "
+            f"(≈ {self.chunk_size // 4}-{self.chunk_size // 3} tokens estimated)"
+        )
 
         chunks = []
         current_chunk = ""

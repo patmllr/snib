@@ -1,5 +1,7 @@
-from snib.writer import Writer
 import pytest
+
+from snib.writer import Writer
+
 
 def test_write_and_clear(tmp_path):
     writer = Writer(tmp_path)

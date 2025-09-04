@@ -5,17 +5,23 @@ from .utils import format_size
 
 logger = logging.getLogger(__name__)
 
+
 class Writer:
     def __init__(self, output_dir: str):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def write_chunks(self, chunks: list[str], force: bool = False, ask_user: bool = True) -> list[Path]:
+    def write_chunks(
+        self, chunks: list[str], force: bool = False, ask_user: bool = True
+    ) -> list[Path]:
         """
         Writes chunks to text files in the output directory.
         - force: overwrite existing files without asking
         - ask_user: prompt user for confirmation (ignored if force=True)
         """
+
+        # TODO: print important msg with typer.echo()
+
         logger.debug(f"Begin writing {len(chunks)} chunk(s) to {self.output_dir}")
 
         # Clear existing prompt files if needed
@@ -23,7 +29,12 @@ class Writer:
             if force:
                 self.clear_output()
             elif ask_user:
-                if input(f"Output directory '{self.output_dir}' contains prompt file(s). Clear them? [y/N]: ").lower() == 'y':
+                if (
+                    input(
+                        f"Output directory '{self.output_dir}' contains prompt file(s). Clear them? [y/N]: "
+                    ).lower()
+                    == "y"
+                ):
                     self.clear_output()
 
         txt_files = []
@@ -33,8 +44,10 @@ class Writer:
 
         # Ask before writing
         if not force and ask_user:
-            proceed = input(f"Do you want to write {len(chunks)} prompt file(s) (total size {size_str}) to '{self.output_dir}'? [y/N]: ").lower()
-            if proceed != 'y':
+            proceed = input(
+                f"Do you want to write {len(chunks)} prompt file(s) (total size {size_str}) to '{self.output_dir}'? [y/N]: "
+            ).lower()
+            if proceed != "y":
                 logger.info("User aborted writing prompt files.")
                 return []
 

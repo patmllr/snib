@@ -1,10 +1,13 @@
-import pytest
 from pathlib import Path
-from snib.scanner import Scanner
-from snib.formatter import Formatter
+
+import pytest
+
 from snib.chunker import Chunker
-from snib.writer import Writer
+from snib.formatter import Formatter
 from snib.models import Section
+from snib.scanner import Scanner
+from snib.writer import Writer
+
 
 def test_end_to_end_scan(tmp_path):
     # -------------------------------
@@ -29,7 +32,7 @@ def test_end_to_end_scan(tmp_path):
         description="Test project",
         include=include_patterns,
         exclude=exclude_patterns,
-        task="test"
+        task="test",
     )
 
     # Check sections collected

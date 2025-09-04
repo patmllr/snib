@@ -1,16 +1,21 @@
-from pathlib import Path
 import logging
+from pathlib import Path
 
-from .models import Section, FilterStats
-from .formatter import Formatter
 from .chunker import Chunker
-from .writer import Writer
+from .formatter import Formatter
+from .models import FilterStats, Section
 from .utils import build_tree
+from .writer import Writer
 
 logger = logging.getLogger(__name__)
 
+# TODO: typer progress bar for scan
+
+
 class Scanner:
-    def __init__(self, path: Path, config: dict): # TODO: add config to all module classes constructors if needed
+    def __init__(
+        self, path: Path, config: dict
+    ):  # TODO: add config to all module classes constructors if needed
         self.path = Path(path).resolve()
         self.config = config
 
@@ -18,8 +23,8 @@ class Scanner:
 
         logger.debug("Collecting sections")
 
-        #included_files = self._get_included_files(self.path, include, exclude)
-        #excluded_files = self._get_included_files(self.path, exclude, include)
+        # included_files = self._get_included_files(self.path, include, exclude)
+        # excluded_files = self._get_included_files(self.path, exclude, include)
         all_files = [f for f in self.path.rglob("*") if f.is_file()]
         included_files = self._get_included_files(self.path, include, exclude)
         excluded_files = [f for f in all_files if f not in included_files]
@@ -34,42 +39,47 @@ class Scanner:
 
         sections.append(Section(type="description", content=description))
         sections.append(Section(type="task", content=instruction))
-        sections.append(Section(type="filters", include=include, exclude=exclude, include_stats=include_stats, exclude_stats=exclude_stats))
-        sections.append(Section(type="tree", content="\n".join(build_tree(path=self.path, include=include, exclude=exclude))))
+        sections.append(
+            Section(
+                type="filters",
+                include=include,
+                exclude=exclude,
+                include_stats=include_stats,
+                exclude_stats=exclude_stats,
+            )
+        )
+        sections.append(
+            Section(
+                type="tree",
+                content="\n".join(
+                    build_tree(path=self.path, include=include, exclude=exclude)
+                ),
+            )
+        )
 
         for file_path in self._get_included_files(self.path, include, exclude):
             try:
                 content = file_path.read_text(encoding="utf-8")
             except Exception:
                 content = f"<Could not read {file_path.name}>\n"
-            sections.append(Section(type="file", path=file_path.relative_to(self.path), content=content))
+            sections.append(
+                Section(
+                    type="file", path=file_path.relative_to(self.path), content=content
+                )
+            )
 
         logger.debug(f"Collected {len(sections)} sections")
 
         return sections
-    
-    """
-    def _file_matches_filters(self, path: Path, include: list[str], exclude: list[str]) -> bool:
-        for pattern in exclude:
-            # file itself or full match
-            if path.match(pattern) or path.name == pattern:
-                return False
-            # NEW: also test folder names in the path!!!
-            if any(part == pattern for part in path.parts):
-                return False
-            
-        if include:
-            return any(path.match(pattern) or path.name == pattern for pattern in include)
 
-        return True
-    """
-
-    def _file_matches_filters(self, path: Path, include: list[str], exclude: list[str]) -> bool:
+    def _file_matches_filters(
+        self, path: Path, include: list[str], exclude: list[str]
+    ) -> bool:
         for pattern in exclude:
             # check full path vs glob + filename correct + foldernames check
             if path.match(pattern) or path.name == pattern or pattern in path.parts:
                 return False
-            
+
         if include:
             for pattern in include:
                 # same here
@@ -81,7 +91,9 @@ class Scanner:
         # default: if no include -> allow all
         return True
 
-    def _get_included_files(self, path: Path, include: list[str], exclude: list[str]) -> list[Path]:
+    def _get_included_files(
+        self, path: Path, include: list[str], exclude: list[str]
+    ) -> list[Path]:
         matching_files = []
 
         for file in path.rglob("*"):
@@ -89,10 +101,12 @@ class Scanner:
                 continue
             if self._file_matches_filters(path=file, include=include, exclude=exclude):
                 matching_files.append(file)
-        
+
         return matching_files
 
-    def _calculate_filter_stats(self, files: list[Path], type_label: str) -> FilterStats:
+    def _calculate_filter_stats(
+        self, files: list[Path], type_label: str
+    ) -> FilterStats:
         """
         Calculates FilterStats for a list of files.
         type_label: "included" or "excluded"
@@ -127,16 +141,22 @@ class Scanner:
             if total <= 1:
                 header = ""
             else:
-                header = f"Please do not give output until all prompt files are sent. Prompt file {i}/{total}\n" if i == 1 else f"Prompt file {i}/{total}\n"
+                header = (
+                    f"Please do not give output until all prompt files are sent. Prompt file {i}/{total}\n"
+                    if i == 1
+                    else f"Prompt file {i}/{total}\n"
+                )
 
             # works with empty info section
-            info_texts = formatter.to_prompt_text([Section(type="info", content=header)])
+            info_texts = formatter.to_prompt_text(
+                [Section(type="info", content=header)]
+            )
             if info_texts:
                 chunks_with_header.append(info_texts[0] + chunk)
             else:
                 chunks_with_header.append(chunk)
 
-            #chunks_with_header.append(formatter.to_prompt_text([Section(type="info", content=header)])[0] + chunk)
-                
+            # chunks_with_header.append(formatter.to_prompt_text([Section(type="info", content=header)])[0] + chunk)
+
         writer = Writer(output_dir)
         writer.write_chunks(chunks_with_header, force=force)

@@ -1,8 +1,10 @@
 import logging
 
-from .models import Section, FilterStats
+from .models import FilterStats, Section
+from .utils import format_size
 
 logger = logging.getLogger(__name__)
+
 
 class Formatter:
     def to_prompt_text(self, sections: list[Section]) -> list[str]:
@@ -18,7 +20,9 @@ class Formatter:
                 if s.content:
                     texts.append(f"#[DESCRIPTION]\n{s.content}\n\n")
                 else:
-                    logger.info("No description provided; skipping DESCRIPTION section.")
+                    logger.info(
+                        "No description provided; skipping DESCRIPTION section."
+                    )
             elif s.type == "task":
                 if s.content:
                     texts.append(f"#[TASK]\n{s.content}\n\n")
@@ -27,9 +31,13 @@ class Formatter:
             elif s.type == "filters":
                 include_text = s.include if s.include else ""
                 exclude_text = s.exclude if s.exclude else ""
-                include_stats_text = self._format_stats(s.include_stats) if s.include_stats else ""
-                exclude_stats_text = self._format_stats(s.exclude_stats) if s.exclude_stats else ""
-                
+                include_stats_text = (
+                    self._format_stats(s.include_stats) if s.include_stats else ""
+                )
+                exclude_stats_text = (
+                    self._format_stats(s.exclude_stats) if s.exclude_stats else ""
+                )
+
                 texts.append(
                     f"#[INCLUDE/EXCLUDE]\n"
                     f"Include patterns: {include_text}\n"
@@ -42,18 +50,10 @@ class Formatter:
             elif s.type == "file":
                 texts.append(f"#[FILE] {s.path}\n{s.content}\n\n")
         return texts
-    
+
     def _format_stats(self, stats: FilterStats) -> str:
         """
-        Formats FilterStats readably.
+        Formats FilterStats readably with format_size()
         Shows number of files and total size in B/KB/MB.
         """
-        size = stats.size
-        if size >= 1024**2:  
-            size_str = f"{size / (1024**2):.2f} MB"
-        elif size >= 1024:   
-            size_str = f"{size / 1024:.2f} KB"
-        else:               
-            size_str = f"{size} B"
-
-        return f"files: {stats.files}, total size: {size_str}"
+        return f"files: {stats.files}, total size: {format_size(stats.size)}"
