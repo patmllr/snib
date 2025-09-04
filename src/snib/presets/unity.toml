@@ -1,3 +1,8 @@
+[config]
+description = "Unity Engine project preset"
+author = "patmllr"
+version = "1.0"
+
 [project]
 path = "."
 description = ""
@@ -6,13 +11,13 @@ description = ""
 task = ""
 
 [filters]
-include = ["*.cs", "*.shader", "*.prefab", "*.unity"]
-exclude = ["*.log", "*.meta", "Library", "Temp", "obj"]
-smart_include = []
-smart_exclude = []
-default_exclude = ["venv", "promptready", ".git"]
+include = ["*.cs", "*.shader", "*.prefab", "*.unity", "Assets", "Packages", "ProjectSettings"]
+exclude = ["*.log", "*.meta", "Library", "Temp", "obj", "Build"]
+smart_include = ["*.cs", "*.shader", "*.prefab", "*.unity"]
+smart_exclude = ["*.log", "*.zip", "*.tar", "*.gz", "*.dll", "*.exe"]
+default_exclude = ["venv", "promptready", ".git", "snibconfig.toml"]
 no_default_exclude = false
-smart = false
+smart = true
 
 [output]
 dir = "promptready"

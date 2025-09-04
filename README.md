@@ -107,20 +107,110 @@ Since snib chunks by characters, the following guidelines can help to estimate t
 | GPT-4-32k             | 32,000               | 110,000                            |                                            |
 | GPT-4o / GPT-5 (128k) | 128,000              | 450,000 – 500,000                  | Very large models, massive chunks possible |
 
-## 🎮 Presets
+## 🔧 Presets
 
-Snib comes with ready-to-use presets:
+Presets are predefined configuration files (.toml) that make it easy to use snib across different project types - e.g., Python, Web, C++, Unity, and more.
+Presets are optional. If you don’t use one, snib falls back to the default configuration.
 
-- `unity.toml` → Configured for Unity projects (*.cs, *.shader, …)
-- `unreal.toml` → Configured for Unreal projects (extendable)
+### 📂 Location
 
-You can create your own presets by adding new .toml files to the presets directory.
+```bash
+src/snib/presets/
+```
+
+### 🏗️ Stucture
+
+Each preset follows the same structure as the default `snibconfig.toml`:
+
+```text
+[config]
+description = "Preset description"
+author = "author"
+version = "1.0"
+
+[project]
+path = "."
+description = ""
+
+[instruction]
+task = ""
+
+[filters]
+include = []
+exclude = []
+smart_include = []
+smart_exclude = []
+default_exclude = []
+no_default_exclude = false
+smart = false
+
+[output]
+chunk_size = 30000
+force = false
+
+[ai]
+model = "gpt-4"
+
+[instruction.task_dict]
+debug = "Debug: ..."
+comment = "Comment: ..."
+refactor = "Refactor: ..."
+optimize = "Optimize: ..."
+summarize = "Summarize: ..."
+document = "Document: ..."
+test = "Test: ..."
+analyze = "Analyze: ..."
+```
+
+### 🚀 Available Presets
+
+Currently included:
+
+- cpp.toml
+- datascience.toml
+- java.toml
+- python.toml
+- unity.toml
+- unreal.toml
+- web.toml
+
+These serve as starting points and can be adjusted or extended by the community.
+
+### 🛠️ Creating Your Own Preset
+
+1. Copy an existing preset (e.g., python.toml).
+2. Adjust the [filters] section (include, exclude) to match your project.
+3. Update the [config] section.
+4. Test your preset locally on your project with:
+
+```bash
+snib init --preset-custom "custom.toml"
+snib scan
+```
+
+### 🤝 Contributing Presets
+
+I welcome community contributions of new presets or improvements to existing ones!
+
+How to submit a preset:
+
+1. Fork the repository.
+2. Add your preset file in src/snib/presets/ (e.g., rust.toml, go.toml, terraform.toml).
+3. Make sure your preset:
+    - ✅ Has meaningful include / exclude rules.
+    - 📖 Contains a clear [config] section.
+    - 🧪 Has been tested locally.
+    - 🔍 Uses a descriptive filename (e.g., rust.toml, not preset1.toml).
+4. Open a Pull Request with a short explanation of:
+    - The project type the preset is for.
+    - Any specifics about the filters.
+
+Presets are the easiest way to contribute to snib - even if you don’t know Python, you can share your .toml with the community!
 
 ## 🗂️ Example 
 
 ```bash
 snib init
-
 snib --verbose scan -e "dist, junk" --chunk-size 100000 --smart
 ```
 
@@ -180,7 +270,7 @@ prompt_4.txt
 - Use `--smart` to focus on code and avoid unnecessary large files.
 - Adjust `--chunk-size` based on your target LLM and the table above.
 
-## 🤝 Contributing
+## 🌱 Contributing New Features
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/your-feature`

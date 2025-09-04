@@ -1,9 +1,6 @@
-import logging
-
+from .logger import logger
 from .models import FilterStats, Section
 from .utils import format_size
-
-logger = logging.getLogger(__name__)
 
 
 class Formatter:

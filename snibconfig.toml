@@ -1,3 +1,8 @@
+[config]
+description = "Default snibconfig.toml"
+author = "patmllr"
+version = "1.0"
+
 [project]
 path = "."
 description = ""
@@ -10,12 +15,11 @@ include = []
 exclude = []
 smart_include = [ "*.py", "*.js", "*.ts", "*.java", "*.cpp", "*.c", "*.cs", "*.go", "*.rb", "*.php", "*.html", "*.css", "*.scss", "*.less", "*.json", "*.yaml", "*.yml", "*.xml", "*.sh", "*.bat", "*.ps1", "*.pl", "*.swift", "*.kt", "*.m", "*.r", "*.sql",]
 smart_exclude = [ "*.log", "*.zip", "*.tar", "*.gz", "*.bin", "*.exe", "*.dll", "*.csv",]
-default_exclude = [ "venv", "promptready", "__pycache__", ".git", "snibconfig.toml",]
+default_exclude = [ "venv", "prompts", "__pycache__", ".git", "snibconfig.toml",]
 no_default_exclude = false
 smart = false
 
 [output]
-dir = "promptready"
 chunk_size = 30000
 force = false
 

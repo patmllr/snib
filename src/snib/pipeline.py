@@ -1,17 +1,17 @@
-import logging
 import shutil
 from pathlib import Path
 
 import typer
 
 from .config import (
-    CONFIG_FILE,
-    DEFAULT_CONFIG,
-    DEFAULT_OUTPUT_DIR,
+    SNIB_CONFIG_FILE,
+    SNIB_DEFAULT_CONFIG,
+    SNIB_PROMPTS_DIR,
     load_config,
     load_preset,
     write_config,
 )
+from .logger import logger
 from .scanner import Scanner
 from .utils import (
     check_include_in_exclude,
@@ -20,32 +20,57 @@ from .utils import (
     handle_include_args,
 )
 
-logger = logging.getLogger(__name__)
-
 
 class SnibPipeline:
     def __init__(self, config=None):  # TODO: what comes in here?
         self.config = config
 
-    def init(self, path: Path = Path.cwd(), preset: str = None):
-        """Generates a new snibconfig.toml with a preset file or defaults."""
-        config_path = path / CONFIG_FILE
+    def init(
+        self, path: Path = Path.cwd(), preset: str = None, custom_preset: Path = None
+    ):
+        """
+        Initialize snib in the given project directory.
+
+        - Creates a `snibconfig.toml` configuration file using either:
+            * a specified preset, or
+            * a custom.toml file, or
+            * the built-in default config.
+        - Ensures that a `prompts/` output directory exists alongside the config.
+        - If both already exist, initialization is skipped to avoid overwriting.
+        """
+        config_path = path / SNIB_CONFIG_FILE
+        prompts_dir = path / SNIB_PROMPTS_DIR
+
+        # check flags conflict
+        if preset and custom_preset:
+            logger.error("--preset and --custom-preset cannot be used together.")
+            raise typer.Exit(1)
 
         if config_path.exists():
-            typer.echo(f"{CONFIG_FILE} already exists. No changes made.")
-            return
+            logger.warning(f"{SNIB_CONFIG_FILE} already exists at {config_path}")
 
-        if preset:
-            data = load_preset(preset)
         else:
-            data = DEFAULT_CONFIG
+            if preset:
+                data = load_preset(preset)
+            elif custom_preset:
+                if not custom_preset.exists():
+                    logger.error(f"Custom preset '{custom_preset}' not found.")
+                    raise typer.Exit(1)
+                data = load_config(custom_preset)
+            else:
+                data = SNIB_DEFAULT_CONFIG
+            # data = load_preset(preset) if preset else SNIB_DEFAULT_CONFIG
+            write_config(config_path, data)
+            logger.notice(
+                f"{config_path} generated with "
+                f"{preset + ' preset' if preset else custom_preset.name if custom_preset else 'defaults'}"
+            )
 
-        write_config(config_path, data)
-        typer.echo(
-            f"{config_path} generated with {(preset + ' preset') if preset else 'defaults'}."
-        )
-
-    # TODO: load config and maybe generate output folder promptready here already
+        if prompts_dir.exists():
+            logger.warning(f"{SNIB_PROMPTS_DIR} already exists at {prompts_dir}")
+        else:
+            prompts_dir.mkdir(exist_ok=True)
+            logger.notice(f"Output folder created at {prompts_dir}")
 
     def scan(
         self,
@@ -57,15 +82,29 @@ class SnibPipeline:
         no_default_exclude: bool,
         smart: bool,
         chunk_size: int,
-        output_dir: Path,
         force: bool,
     ):
         """Runs the scanning pipeline"""
-        config = DEFAULT_CONFIG  # TODO: del this?
-        try:
-            config = load_config()
-        except FileNotFoundError as e:
-            typer.echo(str(e))
+        # config = SNIB_DEFAULT_CONFIG  # TODO: del this?
+        config_path = path / SNIB_CONFIG_FILE
+        output_path = path / SNIB_PROMPTS_DIR
+
+        config_missing = False
+        output_missing = False
+
+        if not config_path.exists():
+            logger.error(f"Config file '{config_path}' not found")
+            config_missing = True
+        else:
+            config = load_config(config_path)
+
+        if not output_path.exists():
+            logger.error(f"Output directory '{output_path}' not found")
+            output_missing = True
+
+        # if something is missing exit
+        if config_missing or output_missing:
+            logger.info("Use 'snib init' first")  # TODO: change to note/hint
             raise typer.Exit(1)
 
         # combine values: CLI > config
@@ -120,24 +159,20 @@ class SnibPipeline:
         logger.debug(f"Final exclude: {exclude}")
 
         chunk_size = chunk_size or config["output"]["chunk_size"]
-        output_dir = output_dir or Path(config["output"]["dir"])
         force = force or config["output"]["force"]
 
         scanner = Scanner(path, config)
-        scanner.scan(description, include, exclude, chunk_size, output_dir, force, task)
-        ...
+        scanner.scan(description, include, exclude, chunk_size, force, task)
 
     def clean(self, path: Path, force: bool, config_only: bool, output_only: bool):
         """Cleans output folder and/or config file"""
         # checks flags conflict
         if config_only and output_only:
-            typer.echo(
-                "Error: --config-only and --output-only cannot be used together."
-            )
+            logger.error("--config-only and --output-only cannot be used together.")
             raise typer.Exit(code=1)
 
-        config_path = path / CONFIG_FILE
-        output_dir = path / DEFAULT_OUTPUT_DIR
+        config_path = path / SNIB_CONFIG_FILE
+        output_dir = path / SNIB_PROMPTS_DIR
 
         to_delete = []
 
@@ -154,23 +189,23 @@ class SnibPipeline:
                 to_delete.append(output_dir)
 
         if not to_delete:
-            typer.echo("Nothing to clean - no matching files/folders found.")
+            logger.info("Nothing to clean. No matching files/folders found.")
             raise typer.Exit()
 
-        typer.echo("The following will be deleted:")
+        logger.info("The following will be deleted:")
         for item in to_delete:
-            typer.echo(f"  - {item}")
+            logger.info(f"- {item}")
 
         if not force:
-            confirm = typer.confirm("Do you want to proceed?", default=False)
+            confirm = logger.confirm("Do you want to proceed?", default=False)
             if not confirm:
-                typer.echo("Aborted.")
+                logger.info("Aborted.")
                 raise typer.Exit()
 
         for item in to_delete:
             if item.is_dir():
                 shutil.rmtree(item)
+                logger.notice(f"Deleted: {item}")
             else:
                 item.unlink()
-
-        typer.echo(f"Cleaned project directory {path}")
+                logger.notice(f"Deleted: {item}")

@@ -1,5 +1,4 @@
 import fnmatch
-import logging
 from importlib import resources
 from pathlib import Path
 
@@ -7,19 +6,18 @@ import toml
 from click import Choice
 
 from . import presets  # reference to snib.presets
-from .config import DEFAULT_CONFIG, load_config
-
-logger = logging.getLogger(__name__)
+from .config import SNIB_DEFAULT_CONFIG, load_config
+from .logger import logger
 
 
 def handle_include_args(include_list):
     include_list = [i.strip() for i in include_list if i.strip()]
 
     if include_list and include_list[0].lower() != "all":
-        logging.debug(f"User include list: {include_list}")
+        logger.debug(f"User include list: {include_list}")
     else:
         include_list = []
-        logging.debug("No user include list or 'all' specified.")
+        logger.debug("No user include list or 'all' specified.")
 
     return include_list
 
@@ -28,9 +26,9 @@ def handle_exclude_args(exclude_list):
     exclude_list = [e.strip() for e in exclude_list if e.strip()]
 
     if exclude_list:
-        logging.debug(f"User exclude list: {exclude_list}")
+        logger.debug(f"User exclude list: {exclude_list}")
     else:
-        logging.debug("No user exclude list specified.")
+        logger.debug("No user exclude list specified.")
 
     return exclude_list
 
@@ -156,11 +154,10 @@ def check_include_in_exclude(
 
 
 def get_task_choices() -> list[str]:
-    try:
-        config = load_config()
-        return Choice(list(config["instruction"]["task_dict"].keys()))
-    except FileNotFoundError:
-        return Choice(list(DEFAULT_CONFIG["instruction"]["task_dict"].keys()))
+    config = load_config()
+    if not config:
+        config = SNIB_DEFAULT_CONFIG
+    return Choice(list(config["instruction"]["task_dict"].keys()))
 
 
 def get_preset_choices() -> list[str]:

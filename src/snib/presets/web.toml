@@ -1,5 +1,5 @@
 [config]
-description = "Unreal Engine project preset"
+description = "Web frontend/backend project preset"
 author = "patmllr"
 version = "1.0"
 
@@ -11,11 +11,11 @@ description = ""
 task = ""
 
 [filters]
-include = ["*.cpp", "*.h", "*.ini", "*.uproject", "Source", "Config", "Content"]
-exclude = ["Binaries", "Intermediate", "DerivedDataCache", "*.pdb", "*.obj"]
-smart_include = ["*.cpp", "*.h", "*.ini", "*.uproject", "*.uasset", "*.umap"]
-smart_exclude = ["*.pdb", "*.obj", "*.exe", "*.dll"]
-default_exclude = ["Binaries", "Intermediate", "DerivedDataCache", ".git", "prompts", "snibconfig.toml"]
+include = ["*.js", "*.ts", "*.jsx", "*.tsx", "*.html", "*.css", "*.scss"]
+exclude = ["node_modules", "dist", "build", "*.map"]
+smart_include = ["*.js", "*.ts", "*.jsx", "*.tsx", "*.html", "*.css", "*.scss", "*.json", "*.yml", "*.yaml"]
+smart_exclude = ["*.log", "*.zip", "*.tar", "*.gz"]
+default_exclude = ["node_modules", "dist", "build", ".git", "prompts", "snibconfig.toml"]
 no_default_exclude = false
 smart = true
 

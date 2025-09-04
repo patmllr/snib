@@ -4,8 +4,14 @@ from pathlib import Path
 import toml
 
 from . import presets  # reference to snib.presets
+from .logger import logger
 
-DEFAULT_CONFIG = {
+SNIB_DEFAULT_CONFIG = {
+    "config": {
+        "description": "Default snibconfig.toml",
+        "author": "patmllr",
+        "version": "1.0",
+    },
     "project": {"path": ".", "description": ""},
     "instruction": {
         "task": "",
@@ -21,8 +27,8 @@ DEFAULT_CONFIG = {
         },
     },
     "filters": {
-        "include": [],  # TODO: like list
-        "exclude": [],  # TODO: like list
+        "include": [],
+        "exclude": [],
         "smart_include": [
             "*.py",
             "*.js",
@@ -64,7 +70,7 @@ DEFAULT_CONFIG = {
         ],
         "default_exclude": [
             "venv",
-            "promptready",
+            "prompts",
             "__pycache__",
             ".git",
             "snibconfig.toml",
@@ -73,18 +79,19 @@ DEFAULT_CONFIG = {
         "smart": False,
     },
     "output": {
-        "dir": "promptready",  # TODO: change to folder_name
         "chunk_size": 30000,
         "force": False,
     },
     "ai": {"model": "gpt-4"},  # TODO: add for later use with APIs
 }
 
-CONFIG_FILE = "snibconfig.toml"
-DEFAULT_OUTPUT_DIR = "promptready"
+SNIB_CONFIG_FILE = "snibconfig.toml"
+SNIB_PROMPTS_DIR = "prompts"
 
 
-def write_config(path: Path = Path(CONFIG_FILE), content: str = DEFAULT_CONFIG):
+def write_config(
+    path: Path = Path(SNIB_CONFIG_FILE), content: str = SNIB_DEFAULT_CONFIG
+):
     """Generates new _config.toml with defaults or presets."""
     if path.exists():
         raise FileExistsError(f"{path} already exists.")
@@ -93,10 +100,10 @@ def write_config(path: Path = Path(CONFIG_FILE), content: str = DEFAULT_CONFIG):
     )  # TODO: Trailing Comma -> clean dump for presets (needs fix) -> tomli-w, tomlkit
 
 
-def load_config(path: Path = Path(CONFIG_FILE)) -> dict:
+def load_config(path: Path = Path(SNIB_CONFIG_FILE)) -> dict:
     """Loads config files or raises FileNotFoundError if not found."""
     if not path.exists():
-        raise FileNotFoundError(f"No {CONFIG_FILE} found. Use 'snib init' first.")
+        return None
     return toml.load(path.open("r"))
 
 

@@ -1,13 +1,13 @@
-import logging
+import fnmatch
 from pathlib import Path
 
 from .chunker import Chunker
+from .config import SNIB_PROMPTS_DIR
 from .formatter import Formatter
+from .logger import logger
 from .models import FilterStats, Section
 from .utils import build_tree
 from .writer import Writer
-
-logger = logging.getLogger(__name__)
 
 # TODO: typer progress bar for scan
 
@@ -72,6 +72,8 @@ class Scanner:
 
         return sections
 
+    # V1 BUGGED _file_matches_filters, _get_included_files
+
     def _file_matches_filters(
         self, path: Path, include: list[str], exclude: list[str]
     ) -> bool:
@@ -102,6 +104,9 @@ class Scanner:
             if self._file_matches_filters(path=file, include=include, exclude=exclude):
                 matching_files.append(file)
 
+        for file in matching_files:
+            logger.debug(f"MATCHING: {file}")
+
         return matching_files
 
     def _calculate_filter_stats(
@@ -120,7 +125,7 @@ class Scanner:
 
         return stats
 
-    def scan(self, description, include, exclude, chunk_size, output_dir, force, task):
+    def scan(self, description, include, exclude, chunk_size, force, task):
 
         logger.info(f"Scanning {self.path}")
 
@@ -158,5 +163,7 @@ class Scanner:
 
             # chunks_with_header.append(formatter.to_prompt_text([Section(type="info", content=header)])[0] + chunk)
 
-        writer = Writer(output_dir)
+        prompts_dir = self.path / SNIB_PROMPTS_DIR
+
+        writer = Writer(prompts_dir)
         writer.write_chunks(chunks_with_header, force=force)

@@ -1,6 +1,4 @@
-import logging
-
-logger = logging.getLogger(__name__)
+from .logger import logger
 
 
 class Chunker:
@@ -27,6 +25,6 @@ class Chunker:
         if current_chunk:
             chunks.append(current_chunk)
 
-        logger.debug(f"Created {len(chunks)} chunk(s)")
+        logger.info(f"Created {len(chunks)} chunk(s)")
 
         return chunks

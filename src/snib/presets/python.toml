@@ -1,5 +1,5 @@
 [config]
-description = "Unreal Engine project preset"
+description = "Python project preset"
 author = "patmllr"
 version = "1.0"
 
@@ -11,11 +11,11 @@ description = ""
 task = ""
 
 [filters]
-include = ["*.cpp", "*.h", "*.ini", "*.uproject", "Source", "Config", "Content"]
-exclude = ["Binaries", "Intermediate", "DerivedDataCache", "*.pdb", "*.obj"]
-smart_include = ["*.cpp", "*.h", "*.ini", "*.uproject", "*.uasset", "*.umap"]
-smart_exclude = ["*.pdb", "*.obj", "*.exe", "*.dll"]
-default_exclude = ["Binaries", "Intermediate", "DerivedDataCache", ".git", "prompts", "snibconfig.toml"]
+include = ["*.py"]
+exclude = ["*.log", "*.db", "*.sqlite", "migrations"]
+smart_include = ["*.py"]
+smart_exclude = ["*.log", "*.csv", "*.pickle", "*.db", "*.sqlite"]
+default_exclude = ["venv", "__pycache__", ".git", "snibconfig.toml", "prompts", ".pyc"]
 no_default_exclude = false
 smart = true
 
