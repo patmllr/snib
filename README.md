@@ -19,7 +19,7 @@
 ## 📦 Installation 
 
 ```bash
-pip install https://github.com/patmllr/snib/releases/latest/download/snib-0.3.0-py3-none-any.whl
+pip install https://github.com/patmllr/snib/releases/latest/download/snib-0.4.1-py3-none-any.whl
 ```
 
 Alternatively download the latest wheel here: [Latest Release](https://github.com/patmllr/snib/releases/latest)
@@ -32,7 +32,7 @@ Create a Python virtual environment inside your project folder and install `snib
 python -m venv venv
 source venv/Scripts/activate   # Windows Git Bash
 source venv/bin/activate       # Linux / macOS
-pip install https://github.com/patmllr/snib/releases/latest/download/snib-0.3.0-py3-none-any.whl
+pip install https://github.com/patmllr/snib/releases/latest/download/snib-0.4.1-py3-none-any.whl
 ```
 
 ## ⚡ CLI Usage
