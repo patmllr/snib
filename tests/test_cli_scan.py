@@ -24,6 +24,7 @@ def test_end_to_end_scan(tmp_path):
     # Initialize Scanner
     # -------------------------------
     scanner = Scanner(tmp_path)
+    # TODO: Scanner.__init__() missing 1 required positional argument: 'config'
 
     include_patterns = ["*.py", "*.js"]
     exclude_patterns = ["*.log"]
@@ -75,3 +76,6 @@ def test_end_to_end_scan(tmp_path):
     # Clear output and check
     writer.clear_output()
     assert not any(output_dir.glob("prompt_*.txt"))
+
+
+# FAILED tests/test_cli_scan.py::test_end_to_end_scan - TypeError: Scanner.__init__() missing 1 required positional argument: 'config'

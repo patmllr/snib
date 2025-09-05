@@ -36,3 +36,6 @@ def test_formatter_size_formatting():
     assert "2.00 KB" in formatter._format_stats(stats)
     stats.size = 5 * 1024**2
     assert "5.00 MB" in formatter._format_stats(stats)
+
+
+# PASSED pytest tests/test_formatter.py

@@ -48,8 +48,10 @@ class SnibPipeline:
 
         if config_path.exists():
             logger.warning(f"{SNIB_CONFIG_FILE} already exists at {config_path}")
+            config_exists_warn = True
 
         else:
+            config_exists_warn = False
             if preset:
                 data = load_preset(preset)
             elif custom_preset:
@@ -67,10 +69,17 @@ class SnibPipeline:
             )
 
         if prompts_dir.exists():
+            prompts_dir_exists_warn = True
             logger.warning(f"{SNIB_PROMPTS_DIR} already exists at {prompts_dir}")
         else:
+            prompts_dir_exists_warn = False
             prompts_dir.mkdir(exist_ok=True)
             logger.notice(f"Output folder created at {prompts_dir}")
+
+        if config_exists_warn or prompts_dir_exists_warn:
+            logger.info(
+                "Use 'snib clean' first if you want to initialise your project again."
+            )
 
     def scan(
         self,
@@ -107,8 +116,19 @@ class SnibPipeline:
             logger.info("Use 'snib init' first")  # TODO: change to note/hint
             raise typer.Exit(1)
 
+        # config exists made sure ...
         # combine values: CLI > config
-        path = path or Path(config["project"]["path"])
+        config_description = config["config"]["description"]
+        config_author = config["config"]["author"]
+        config_version = config["config"]["version"]
+
+        # TODO: better formatting + more infos in config.py, e.g name, ...
+        # TODO: coloring 4 community
+        logger.info(
+            f"Using 'snibconfig.toml': {config_description} by {config_author} v{config_version}"
+        )
+
+        path = path or Path(config["project"]["path"])  # TODO: check this
         description = description or config["project"]["description"]
         task = task or config["instruction"]["task"]
 

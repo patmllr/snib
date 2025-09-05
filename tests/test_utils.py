@@ -38,3 +38,6 @@ def test_build_tree(tmp_path):
     tree = build_tree(tmp_path, include=["*.py"], exclude=[])
     tree_str = "\n".join(tree)
     assert "file1.py" in tree_str
+
+
+# PASSED pytest tests/test_utils.py -v

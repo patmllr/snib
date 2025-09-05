@@ -1,4 +1,5 @@
 import fnmatch
+import os
 from pathlib import Path
 
 from .chunker import Chunker
@@ -10,6 +11,7 @@ from .utils import build_tree
 from .writer import Writer
 
 # TODO: typer progress bar for scan
+# HEART OF SNIB
 
 
 class Scanner:
@@ -23,10 +25,8 @@ class Scanner:
 
         logger.debug("Collecting sections")
 
-        # included_files = self._get_included_files(self.path, include, exclude)
-        # excluded_files = self._get_included_files(self.path, exclude, include)
         all_files = [f for f in self.path.rglob("*") if f.is_file()]
-        included_files = self._get_included_files(self.path, include, exclude)
+        included_files = self._scan_files(self.path, include, exclude)
         excluded_files = [f for f in all_files if f not in included_files]
 
         include_stats = self._calculate_filter_stats(included_files, "included")
@@ -57,7 +57,7 @@ class Scanner:
             )
         )
 
-        for file_path in self._get_included_files(self.path, include, exclude):
+        for file_path in included_files:
             try:
                 content = file_path.read_text(encoding="utf-8")
             except Exception:
@@ -72,42 +72,122 @@ class Scanner:
 
         return sections
 
-    # V1 BUGGED _file_matches_filters, _get_included_files
+    # ---------------------------------------------------------
+    # Helper function: seperate patterns in globs and prefixes
+    # ---------------------------------------------------------
+    def _split_patterns(self, patterns: list[str]) -> tuple[list[str], list[str]]:
+        """
+        Seperates patterns in globs und prefixes (directories/files).
 
-    def _file_matches_filters(
-        self, path: Path, include: list[str], exclude: list[str]
+        Example:
+            "*.py"          -> glob
+            "src/snib"      -> prefix
+            "utils.py"      -> prefix (direct filename)
+        """
+        globs = []
+        prefixes = []
+        for p in patterns:
+            p = str(p).replace("\\", "/").rstrip("/")  # normalise Windows/Linux
+            if "*" in p or "?" in p:
+                globs.append(p)
+            else:
+                prefixes.append(p)
+        return globs, prefixes
+
+    # ---------------------------------------------------------
+    # Helper function: match directories/filenames vs patterns
+    # ---------------------------------------------------------
+    def _match_patterns(
+        self,
+        rel_path: str,
+        file_name: str,
+        glob_patterns: list[str],
+        prefix_patterns: list[str],
     ) -> bool:
-        for pattern in exclude:
-            # check full path vs glob + filename correct + foldernames check
-            if path.match(pattern) or path.name == pattern or pattern in path.parts:
-                return False
+        """
+        Checks, wether rel_path or filename matches any patterns.
 
-        if include:
-            for pattern in include:
-                # same here
-                if path.match(pattern) or path.name == pattern or pattern in path.parts:
-                    return True
+        - Checking glob-patterns for filenames and relative paths.
+        - Checking prefix-patterns for:
+            - exact relative path
+            - beggins with prefix (e.g. "src/snib")
+            - exact filename (e.g. "utils.py")
+            - exists in path (e.g. "__pycache__")
+        """
+        # glob check
+        for g in glob_patterns:
+            if fnmatch.fnmatch(file_name, g) or fnmatch.fnmatch(rel_path, g):
+                return True
 
-            return False  # nothing matched
+        # prefix check
+        for p in prefix_patterns:
+            if (
+                rel_path == p
+                or rel_path.startswith(p + "/")
+                or file_name == p
+                or f"/{p}/"
+                in f"/{rel_path}/"  # folders or path parts somewhere in path
+                # or fnmatch.fnmatch(rel_path, p)  # flexible matching works for: utils.py, /src/snib/utils.py, **/utils.py
+            ):
+                return True
 
-        # default: if no include -> allow all
-        return True
+        return False
 
-    def _get_included_files(
-        self, path: Path, include: list[str], exclude: list[str]
-    ) -> list[Path]:
-        matching_files = []
+    # ---------------------------------------------------------
+    # Helper function: Optimized Scan-Function with os.walk (fast!)
+    # ---------------------------------------------------------
+    def _scan_files(self, root: Path, includes=None, excludes=None) -> list[Path]:
+        """
+        Scanns a project directory for files.
 
-        for file in path.rglob("*"):
-            if not file.is_file():
-                continue
-            if self._file_matches_filters(path=file, include=include, exclude=exclude):
-                matching_files.append(file)
+        - includes = list of patterns (default: ["*"])
+        - excludes = list of patterns (default: [])
 
-        for file in matching_files:
-            logger.debug(f"MATCHING: {file}")
+        return: list of path objects (filtered).
+        """
+        includes = includes or ["*"]
+        excludes = excludes or []
 
-        return matching_files
+        include_globs, include_prefixes = self._split_patterns(includes)
+        exclude_globs, exclude_prefixes = self._split_patterns(excludes)
+
+        results = []
+
+        for dirpath, dirnames, filenames in os.walk(root):
+            rel_dir = Path(dirpath).relative_to(root).as_posix()
+
+            # --- Step 1: exclude whole directories early (Speed!)
+            # going through list and deleting excluded directories from `dirnames`.
+            dirnames[:] = [
+                d
+                for d in dirnames
+                if not self._match_patterns(
+                    f"{rel_dir}/{d}" if rel_dir != "." else d,
+                    d,
+                    exclude_globs,
+                    exclude_prefixes,
+                )
+            ]
+
+            # --- Step 2: Check files
+            for fname in filenames:
+                rel_path = (
+                    f"{rel_dir}/{fname}" if rel_dir != "." else fname
+                )  # relative path from root
+
+                # Exclude check
+                if self._match_patterns(
+                    rel_path, fname, exclude_globs, exclude_prefixes
+                ):
+                    continue
+
+                # Include check
+                if self._match_patterns(
+                    rel_path, fname, include_globs, include_prefixes
+                ):
+                    results.append(Path(dirpath) / fname)
+
+        return results
 
     def _calculate_filter_stats(
         self, files: list[Path], type_label: str
