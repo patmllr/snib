@@ -1,11 +1,24 @@
 # Snib ✂️
 
-**Snib** is a Python CLI tool to scan your projects, collect source files, and generate **prompt-ready chunks** for use with large language models (LLMs). It helps you prepare clean, structured context from your codebase with include/exclude filters, project trees, and chunking. It supports filtering by file types, folders, regex and can optionally run in **smart mode** to automatically ignore large logs or binary files.
+**Snib** is a Python CLI tool to scan your projects, collect source files, and generate prompt-ready chunks for use with Large Language Models (LLMs).
 
-## 🚀 Features 
+## 💡 Why Snib?
+
+Today there are many AI coding assistants (Copilot, Cursor, Tabnine, …).  
+They are powerful but often expensive, tied to specific models, and in some cases not as good at reasoning as other LLMs available on the web.
+
+With Snib you stay flexible:  
+- Use **any LLM you prefer** – free, paid, reasoning-strong, or lightweight.  
+- Work directly with the web UI of your favorite model while Snib prepares clean, structured chunks of your code.  
+- Get **helpful assistance** from AI without handing over control of your entire project.
+- Keep **full ownership** of your coding process. The AI assists, but you remain the developer.
+
+This way, AI remains a helpful assistant and you stay the one driving your project forward.
+
+## 🚀 Features
 
 - Scan entire projects recursively.
-- Include or exclude files/folders with globs or explicit paths.
+- Include or exclude files/folders with globs and prefix patterns.
 - Generate prompt-ready chunks with configurable size.
 - Built-in tasks: `debug`, `comment`, `refactor`, `optimize`, `summarize`, `document`, `test`, `analyze`.
 - Smart mode automatically focuses on source code and ignores unnecessary files.
@@ -30,8 +43,18 @@ Create a Python virtual environment inside your project folder and install `snib
 
 ```bash
 python -m venv venv
-source venv/Scripts/activate   # Windows Git Bash
-source venv/bin/activate       # Linux / macOS
+```
+
+| Platform / Shell     | Activation command             |
+| -------------------- | ------------------------------ |
+| Windows (Git Bash)   | `source venv/Scripts/activate` |
+| Windows (PowerShell) | `venv\Scripts\Activate.ps1`    |
+| Windows (CMD)        | `venv\Scripts\activate.bat`    |
+| Linux / macOS        | `source venv/bin/activate`     |
+
+Then install `snib`:
+
+```bash
 pip install https://github.com/patmllr/snib/releases/latest/download/snib-0.4.1-py3-none-any.whl
 ```
 
@@ -85,7 +108,7 @@ Scans your project and generates prompt-ready chunks.
 
 `clean`
 
-Removes the `promptready` folder and/or config file from your project.
+Removes the `prompts` folder and/or `sinibconfig.toml` file from your project.
 
 | Option          | Short | Description                                    |
 | --------------- | ----- | ---------------------------------------------- |
@@ -226,7 +249,7 @@ Debug: Analyze the code and highlight potential errors, bugs, or inconsistencies
 
 #[INCLUDE/EXCLUDE]
 Include patterns: ['*.py']
-Exclude patterns: ['promptready', 'dist', 'junk', 'venv', '__pycache__']
+Exclude patterns: ['prompts', 'dist', 'junk', 'venv', '__pycache__']
 Included files: files: 16, total size: 28.86 KB
 Excluded files: files: 1943, total size: 262.11 MB
 
@@ -255,7 +278,7 @@ Prompt file 4/4
 ...
 ```
 
-After running snib, a `promptready` folder is generated with prompt files ready to get copied to the clipboard:
+After running `snib scan`, prompt files are written to the `prompts` folder and are ready to get copied to the clipboard:
 
 ```text
 prompt_1.txt
@@ -266,7 +289,7 @@ prompt_4.txt
 ## 🧠 Best Practices
 
 - Always install snib inside a virtual environment.
-- `venv` and `promptready` are automatically excluded from scans.
+- `venv` and `prompts` are automatically excluded from scans.
 - Use `--smart` to focus on code and avoid unnecessary large files.
 - Adjust `--chunk-size` based on your target LLM and the table above.
 
@@ -283,6 +306,22 @@ prompt_4.txt
 - Snib is designed to be lightweight and easily integrated into CI/CD pipelines.
 - Works cross-platform (Windows, Linux, macOS).
 - Automatically inserts headers in multi-chunk outputs to guide LLM processing.
+- Not battle tested yet.
+
+## 🔮 Future Outlook
+
+AI coding assistants are evolving quickly and many of them are powerful but also **expensive** and **locked to specific models**.  
+Snib follows a different path: it is **model-agnostic**, **lightweight**, and puts **you in control** of your code.  
+
+I believe Snib will stay useful in the long run because:
+
+- 🌍 **Model diversity is growing**: Open-source LLMs (Mistral, LLaMA, DeepSeek, …) will continue to appear. Snib works with all of them.  
+- 🧩 **Flexible workflows**: Snib is CLI-based and integrates easily into any project, CI/CD pipeline, or team workflow.  
+- 🤝 **Community presets**: The more presets the community shares, the stronger Snib becomes across languages and frameworks.  
+- 🛠️ **Assist, don’t replace**: With Snib, AI stays a helpful assistant. Developers remain the one steering the project.
+
+In a time where the AI hype risks making developers too dependent on auto-coders, Snib provides a balanced workflow: 
+You always get AI support when you need it but you stay in charge of your project.
 
 ## 📜 License
 
