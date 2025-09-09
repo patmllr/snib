@@ -6,7 +6,7 @@
 
 Today there are many AI coding assistants (Copilot, Cursor, Tabnine, …). They are powerful but often expensive, tied to specific models, and in some cases not as good at reasoning as other LLMs available on the web.
 
-Snib keeps you flexible::  
+Snib keeps you flexible:
 - Use any LLM - free, paid, reasoning-strong, or lightweight.  
 - Use your favorite model’s web UI while Snib prepares your code for input.
 - Get AI assistance without handing over control of your entire project.
