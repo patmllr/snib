@@ -4,6 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "snib"
+dynamic = ["version"]
 authors = [
   { name="Patrick Müller", email="patrick.mueller.net@protonmail.com" },
 ]
