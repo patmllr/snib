@@ -1,31 +1,26 @@
 # Snib ✂️
 
-**Snib** is a Python CLI tool to scan your projects, collect source files, and generate prompt-ready chunks for use with Large Language Models (LLMs).
+**Snib** is a Python CLI tool to scan your projects and generate prompt-ready chunks for use with LLMs.
 
 ## 💡 Why Snib?
 
-Today there are many AI coding assistants (Copilot, Cursor, Tabnine, …).  
-They are powerful but often expensive, tied to specific models, and in some cases not as good at reasoning as other LLMs available on the web.
+Today there are many AI coding assistants (Copilot, Cursor, Tabnine, …). They are powerful but often expensive, tied to specific models, and in some cases not as good at reasoning as other LLMs available on the web.
 
-With Snib you stay flexible:  
-- Use **any LLM you prefer** – free, paid, reasoning-strong, or lightweight.  
-- Work directly with the web UI of your favorite model while Snib prepares clean, structured chunks of your code.  
-- Get **helpful assistance** from AI without handing over control of your entire project.
-- Keep **full ownership** of your coding process. The AI assists, but you remain the developer.
-
-This way, AI remains a helpful assistant and you stay the one driving your project forward.
+Snib keeps you flexible::  
+- Use any LLM - free, paid, reasoning-strong, or lightweight.  
+- Use your favorite model’s web UI while Snib prepares your code for input.
+- Get AI assistance without handing over control of your entire project.
+- Keep full ownership of your project. The AI assists, but you remain the developer.
 
 ## 🚀 Features
 
-- Scan entire projects recursively.
-- Include or exclude files/folders with globs and prefix patterns.
-- Generate prompt-ready chunks with configurable size.
-- Built-in tasks: `debug`, `comment`, `refactor`, `optimize`, `summarize`, `document`, `test`, `analyze`.
-- Smart mode automatically focuses on source code and ignores unnecessary files.
-- Detects conflicts between include/exclude patterns.
-- Logs scanning and processing details at INFO or DEBUG level.
-- Clean and organized prompt output for large projects.
-- Uses three commands `init`, `scan` and `clean`.
+- Recursively scan entire projects.  
+- Flexibly include or exclude files/folders using globs and prefix patterns.  
+- Generate prompt-ready chunks with configurable size.  
+- Built-in tasks: `debug`, `comment`, `refactor`, `optimize`, `summarize`, `document`, `test`, `analyze`.  
+- Smart mode automatically focuses on source code and ignores irrelevant files.  
+- Detailed logging at INFO or DEBUG level.  
+- Simple CLI with three commands: `init`, `scan`, and `clean`.  
 
 ---
 
@@ -39,24 +34,13 @@ Alternatively download the latest wheel here: [Latest Release](https://github.co
 
 ### 🧰 Recommended setup
 
-Create a Python virtual environment inside your project folder and install `snib` in the `venv`:
+1. Create a Python virtual environment in your project folder:
 
 ```bash
 python -m venv venv
 ```
 
-| Platform / Shell     | Activation command             |
-| -------------------- | ------------------------------ |
-| Windows (Git Bash)   | `source venv/Scripts/activate` |
-| Windows (PowerShell) | `venv\Scripts\Activate.ps1`    |
-| Windows (CMD)        | `venv\Scripts\activate.bat`    |
-| Linux / macOS        | `source venv/bin/activate`     |
-
-Then install `snib`:
-
-```bash
-pip install https://github.com/patmllr/snib/releases/latest/download/snib-0.4.1-py3-none-any.whl
-```
+2. Activate the virtual environment and install Snib as shown above.
 
 ## ⚡ CLI Usage
 
@@ -71,7 +55,6 @@ snib [OPTIONS] COMMAND [ARGS]...
 | Option                     | Description                              |
 | -------------------------- | ---------------------------------------- |
 | `--verbose / --no-verbose` | Show INFO logs (default: `--no-verbose`) |
-| `--dev / --no-dev`         | Show DEBUG logs (default: `--no-dev`)    |
 | `--install-completion`     | Install shell completion                 |
 | `--show-completion`        | Show completion script                   |
 | `--help`                   | Show this message and exit               |
@@ -80,12 +63,12 @@ snib [OPTIONS] COMMAND [ARGS]...
 
 `init`
 
-Generates a new `snibconfig.toml` in your project directory.
+Generates a new `prompts` folder and `snibconfig.toml` in your project directory.
 
 | Option        | Short | Description                                           |
 | ------------- | ----- | ----------------------------------------------------- |
+| `--path PATH` | `-p`  | Target directory (default: current directory)         |
 | `--preset`    |       | Preset to use: `unity`, `unreal` (extendable)         |
-| `--path PATH` | `-p`  | Target directory (default: current working directory) |
 | `--help`      |       | Show this message and exit                            |
 
 `scan`
@@ -108,7 +91,7 @@ Scans your project and generates prompt-ready chunks.
 
 `clean`
 
-Removes the `prompts` folder and/or `sinibconfig.toml` file from your project.
+Removes the `prompts` folder and/or `sinibconfig.toml` from your project directory.
 
 | Option          | Short | Description                                    |
 | --------------- | ----- | ---------------------------------------------- |
@@ -118,9 +101,9 @@ Removes the `prompts` folder and/or `sinibconfig.toml` file from your project.
 | `--output-only` |       | Only delete the `promptready` folder           |
 | `--help`        |       | Show this message and exit                     |
 
-## 👍 Rule of Thumb for Chunk Sizes
+## 👍 Rule of Thumb for Chunk Size
 
-Since snib chunks by characters, the following guidelines can help to estimate the chunk size:
+Since Snib chunks by characters, the following guidelines can help to estimate the chunk size:
 
 | Model / LLM           | Max Context (Tokens) | Recommended `--chunk-size` (Chars) | Notes                                      |
 | --------------------- | -------------------- | ---------------------------------- | ------------------------------------------ |
@@ -132,8 +115,7 @@ Since snib chunks by characters, the following guidelines can help to estimate t
 
 ## 🔧 Presets
 
-Presets are predefined configuration files (.toml) that make it easy to use snib across different project types - e.g., Python, Web, C++, Unity, and more.
-Presets are optional. If you don’t use one, snib falls back to the default configuration.
+Presets are predefined `.toml` configuration files that simplify using Snib across different project types (Python, Web, C++, Unity, etc.). They’re optional - without a preset, Snib falls back to the default configuration.
 
 ### 📂 Location
 
@@ -141,7 +123,7 @@ Presets are optional. If you don’t use one, snib falls back to the default con
 src/snib/presets/
 ```
 
-### 🏗️ Stucture
+### 🏗️ Structure
 
 Each preset follows the same structure as the default `snibconfig.toml`:
 
@@ -171,9 +153,6 @@ smart = false
 chunk_size = 30000
 force = false
 
-[ai]
-model = "gpt-4"
-
 [instruction.task_dict]
 debug = "Debug: ..."
 comment = "Comment: ..."
@@ -187,23 +166,15 @@ analyze = "Analyze: ..."
 
 ### 🚀 Available Presets
 
-Currently included:
+Included: `cpp`, `datascience`, `java`, `python`, `unity`, `unreal`, `web` (.toml)  
 
-- cpp.toml
-- datascience.toml
-- java.toml
-- python.toml
-- unity.toml
-- unreal.toml
-- web.toml
-
-These serve as starting points and can be adjusted or extended by the community.
+💡 These serve as starting points and can be adjusted or extended by the community.
 
 ### 🛠️ Creating Your Own Preset
 
-1. Copy an existing preset (e.g., python.toml).
-2. Adjust the [filters] section (include, exclude) to match your project.
-3. Update the [config] section.
+1. Copy an existing preset (e.g., `python.toml`).
+2. Adjust the `[filters]` section (include, exclude) to match your project.
+3. Update the `[config]` section.
 4. Test your preset locally on your project with:
 
 ```bash
@@ -211,24 +182,24 @@ snib init --preset-custom "custom.toml"
 snib scan
 ```
 
-### 🤝 Contributing Presets
+### 🤝 Contribute Presets
 
-I welcome community contributions of new presets or improvements to existing ones!
+Community contributions of new presets or improvements are welcome! 
 
 How to submit a preset:
 
 1. Fork the repository.
 2. Add your preset file in src/snib/presets/ (e.g., rust.toml, go.toml, terraform.toml).
 3. Make sure your preset:
-    - ✅ Has meaningful include / exclude rules.
-    - 📖 Contains a clear [config] section.
+    - 📖 Contains a clear `[config]` section.
+    - ✔️ Has meaningful include / exclude rules.
     - 🧪 Has been tested locally.
-    - 🔍 Uses a descriptive filename (e.g., rust.toml, not preset1.toml).
+    - 🔍 Uses a descriptive filename (e.g., `rust.toml`, not `preset1.toml`).
 4. Open a Pull Request with a short explanation of:
     - The project type the preset is for.
     - Any specifics about the filters.
 
-Presets are the easiest way to contribute to snib - even if you don’t know Python, you can share your .toml with the community!
+💡 Presets are the easiest way to contribute - even if you don’t know Python.
 
 ## 🗂️ Example 
 
@@ -288,10 +259,9 @@ prompt_4.txt
 
 ## 🧠 Best Practices
 
-- Always install snib inside a virtual environment.
-- `venv` and `prompts` are automatically excluded from scans.
-- Use `--smart` to focus on code and avoid unnecessary large files.
-- Adjust `--chunk-size` based on your target LLM and the table above.
+- Use a virtual environment inside your project directory.
+- Run with `--smart` to focus on source code and skip large irrelevant files.  
+- Adjust `--chunk-size` for your target LLM (see [Chunk Size Table](#-rule-of-thumb-for-chunk-size)).  
 
 ## 🌱 Contributing New Features
 
@@ -304,24 +274,19 @@ prompt_4.txt
 ## 📝 Notes
 
 - Snib is designed to be lightweight and easily integrated into CI/CD pipelines.
-- Works cross-platform (Windows, Linux, macOS).
 - Automatically inserts headers in multi-chunk outputs to guide LLM processing.
+- Works cross-platform (Windows, Linux, macOS).
 - Not battle tested yet.
 
 ## 🔮 Future Outlook
 
-AI coding assistants are evolving quickly and many of them are powerful but also **expensive** and **locked to specific models**.  
-Snib follows a different path: it is **model-agnostic**, **lightweight**, and puts **you in control** of your code.  
+Snib is **model-agnostic**, **lightweight**, and keeps **you in control** - unlike expensive, locked AI assistants.
 
-I believe Snib will stay useful in the long run because:
-
-- 🌍 **Model diversity is growing**: Open-source LLMs (Mistral, LLaMA, DeepSeek, …) will continue to appear. Snib works with all of them.  
-- 🧩 **Flexible workflows**: Snib is CLI-based and integrates easily into any project, CI/CD pipeline, or team workflow.  
-- 🤝 **Community presets**: The more presets the community shares, the stronger Snib becomes across languages and frameworks.  
-- 🛠️ **Assist, don’t replace**: With Snib, AI stays a helpful assistant. Developers remain the one steering the project.
-
-In a time where the AI hype risks making developers too dependent on auto-coders, Snib provides a balanced workflow: 
-You always get AI support when you need it but you stay in charge of your project.
+Why Snib remains useful:  
+- 🌍 Works with any LLM, including new open-source models.  
+- 🧩 CLI-based, fits into any project, CI/CD pipeline, or workflow.  
+- 🤝 Community presets extend support across languages and frameworks.  
+- 🛠️ AI assists without replacing you - developers stay in charge.  
 
 ## 📜 License
 
