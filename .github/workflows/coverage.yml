@@ -30,6 +30,4 @@ jobs:
             CODACY_ORGANIZATION_PROVIDER: gh
             CODACY_USERNAME: patmllr
             CODACY_PROJECT_NAME: snib
-        run: python-codacy-coverage -r coverage.xml \
-                --commit ${{ github.sha }} \
-                --branch ${{ github.ref_name }}
+        run: python-codacy-coverage -r coverage.xml -c ${{ github.sha }}
