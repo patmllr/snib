@@ -90,7 +90,7 @@ jobs:
       - name: Set version in pyproject.toml
         run: |
           VERSION=${{ needs.details.outputs.new_version }}
-          hatch version set $VERSION
+          hatch version $VERSION
 
       - name: Build distributions
         run: python -m build
