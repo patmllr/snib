@@ -27,7 +27,7 @@ Snib keeps you flexible:
 ## 📦 Installation 
 
 ```bash
-pip install https://github.com/patmllr/snib/releases/latest/download/snib-0.4.1-py3-none-any.whl
+pip install snib
 ```
 
 Alternatively download the latest wheel here: [Latest Release](https://github.com/patmllr/snib/releases/latest)
