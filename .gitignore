@@ -26,3 +26,7 @@ Thumbs.db
 # Project-specific junk
 junk/
 prompts/
+
+# coverage reports
+htmlcov/
+.coverage

@@ -32,7 +32,9 @@ path = "src/snib/__init__.py"
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
+    "pytest-cov",
     "build",
+    "hatch",
 ]
 
 [project.urls]
