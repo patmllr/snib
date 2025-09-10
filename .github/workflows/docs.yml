@@ -24,5 +24,7 @@ jobs:
           path: .cache
           restore-keys: |
             mkdocs-material-
+      - name: Install Snib
+        run: pip install -e .
       - run: pip install mkdocs-material mkdocstrings mkdocstrings-python pymdown-extensions
       - run: mkdocs gh-deploy --force
