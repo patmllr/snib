@@ -53,7 +53,7 @@ Full documentation is available at [https://patmllr.github.io/snib/](https://pat
 
 ## 🤝 Contribute
 
-Help improve snib by creating presets, adding new features, fixing bugs or improving docs. See [Presets](https://patmllr.github.io/snib/usage/presets/), [Development](https://patmllr.github.io/snib/development/contributing/).
+Help improve Snib by contributing presets, features, bug fixes, or docs. See [Presets](https://patmllr.github.io/snib/usage/presets/) and [Development](https://patmllr.github.io/snib/development/contributing/).
 
 ## 📜 License
 
