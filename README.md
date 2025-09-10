@@ -19,18 +19,14 @@ Today there are many AI coding assistants such as Copilot, Cursor, and Tabnine. 
 
 Snib keeps you flexible:
 - Use any LLM - free, paid, reasoning-strong, or lightweight.  
-- Use your favorite model’s web UI while Snib prepares your code for input.
-- Get AI assistance without handing over control of your entire project.
+- Use your favorite model’s web UI while snib prepares your code for input.
 
 ## 🚀 Features
 
-- Recursively scan entire projects.  
-- Flexibly include or exclude files/folders using globs and prefix patterns.  
-- Generate prompt-ready chunks with configurable size.  
-- Built-in tasks: `debug`, `comment`, `refactor`, `optimize`, `summarize`, `document`, `test`, `analyze`.  
-- Smart mode: focus on source code, ignore irrelevant files.
-- Detailed logging at INFO or DEBUG level.  
-- Simple CLI with three commands: `init`, `scan`, and `clean`.  
+- Recursively scan projects with include/exclude rules.
+- Generate prompt-ready chunks with configurable sizes.
+- Section formatting and built-in tasks to guide the AI.
+- Simple CLI with three commands: `init`, `scan`, and `clean`.
 
 ## 📦 Installation 
 
@@ -43,7 +39,6 @@ Alternatively download the latest wheel here: [Latest Release](https://github.co
 ## ⚡ Quick Start
 
 ```text
-pip install snib
 cd /path/to/your/project
 snib init
 snib scan --smart
@@ -51,23 +46,14 @@ snib scan --smart
 
 ## 📚 Documentation
 
-Full documentation is available at [Docs](DOCS-LINK):
-- [Usage](USAGE-LINK) - getting started, CLI, and examples
-- [Configuration](CONFIGURATION-LINK) - presets, snibconfig.toml
-- [Development](DEVELOPMENT-LINK) - code structure, testing, contributing
+Full documentation is available at [https://patmllr.github.io/snib/](https://patmllr.github.io/snib/):
+- [Usage](https://patmllr.github.io/snib/usage/getting-started/): Learn how to run snib and configure it.
+- [Development](https://patmllr.github.io/snib/development/contributing/): Contributing, testing, and internal structure.
+- [API Reference](https://patmllr.github.io/snib/reference/pipeline/): Automatically generated from the code docstrings.
 
-## 📝 Notes
+## 🤝 Contribute
 
-- Snib is designed to be lightweight and easily integrated into CI/CD pipelines.
-- Automatically inserts headers in multi-chunk outputs to guide LLM processing.
-- Works cross-platform (Windows, Linux, macOS).
-- Not battle tested yet.
-
-## 🤝 Contributing
-
-Want to help improve Snib? Check the [Development](DEVELOPMENT-LINK) docs.
-
-💡 An easy way to contribute is by creating or improving **presets** for different project types. Presets are simple `.toml` files that define include/exclude rules and default tasks, making Snib immediately usable for more developers. Check the [Prerets](PRESETS-LINK) docs.
+Help improve snib by creating presets, adding new features, fixing bugs or improving docs. See [Presets](https://patmllr.github.io/snib/usage/presets/), [Development](https://patmllr.github.io/snib/development/contributing/).
 
 ## 📜 License
 
