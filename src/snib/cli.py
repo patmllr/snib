@@ -18,7 +18,7 @@ app = typer.Typer(
 # TODO: Add @app.command() check to validate a custom.toml
 
 
-@app.command()
+@app.command(help="Generate snibconfig.toml and prompts folder in project directory.")
 def init(
     path: Path = typer.Option(
         Path.cwd(),
@@ -38,12 +38,17 @@ def init(
     ),
 ):
     """
-    Generates a new snibconfig.toml and prompts folder in your project directory.
+    Generates snibconfig.toml and prompts folder in a specified project directory.
+
+    Args:
+        path (Path): Directory of the project.
+        preset (str, optional): Predefined preset to use.
+        custom_preset (Path, optional): Path to custom TOML preset.
     """
     pipeline.init(path=path, preset=preset, custom_preset=custom_preset)
 
 
-@app.command()
+@app.command(help="Scans your project and generates prompt-ready chunks.")
 def scan(
     path: Path = typer.Option(
         Path.cwd(),
@@ -61,7 +66,7 @@ def scan(
         None,
         "--task",
         "-t",
-        help="Choose one of the available tasks to instruct the AI what to do with your project files. [default: None]",
+        help="Choose one of the available tasks to instruct the AI. [default: None]",
         case_sensitive=False,
         show_choices=True,
         click_type=get_task_choices(),
@@ -82,7 +87,7 @@ def scan(
         False,
         "--no-default-excludes",
         "-E",
-        help="Disable default exclusion. Not suggested; also includes e.g. venv, promts, snibconfig.toml, ... [default: False]",
+        help="Disable default exclusion. Not suggested. [default: False]",
     ),
     smart: bool = typer.Option(
         False,
@@ -104,7 +109,18 @@ def scan(
     ),
 ):
     """
-    Scans your project and generates prompt-ready chunks.
+    Scan the project directory and generate prompt-ready chunks for LLMs.
+
+    Args:
+        path (Path): Project directory to scan. Defaults to current working directory.
+        description (str, optional): Short description of the project or changes. Defaults to None.
+        task (str, optional): Task instruction for the AI. Defaults to None.
+        include_raw (str): Comma-separated patterns of files/folders to include. Defaults to "all".
+        exclude_raw (str): Comma-separated patterns of files/folders to exclude. Defaults to "".
+        no_default_exclude (bool): Disable default exclusions. Defaults to False.
+        smart (bool): Enable smart mode to auto-include only relevant code files. Defaults to False.
+        chunk_size (int, optional): Maximum number of characters per chunk. Defaults to 30000.
+        force (bool): Overwrite existing prompt files without asking. Defaults to False.
     """
     pipeline.scan(
         path=path,
@@ -119,7 +135,7 @@ def scan(
     )
 
 
-@app.command()
+@app.command(help="Removes the promts folder and/or snibconfig.toml from your project.")
 def clean(
     path: Path = typer.Option(
         Path.cwd(), "--path", "-p", help="Project directory to run 'snib clean' on."
@@ -135,7 +151,13 @@ def clean(
     ),
 ):
     """
-    Removes the promts folder and/or snibconfig.toml from your project.
+    Remove the prompts folder and/or `snibconfig.toml` from the project directory.
+
+    Args:
+        path (Path): Project directory. Defaults to current working directory.
+        force (bool): Skip confirmation prompt before deletion. Defaults to False.
+        config_only (bool): Delete only `snibconfig.toml`. Defaults to False.
+        output_only (bool): Delete only the prompts folder. Defaults to False.
     """
     pipeline.clean(
         path=path, force=force, config_only=config_only, output_only=output_only
@@ -145,7 +167,10 @@ def clean(
 @app.callback()
 def main(verbose: bool = False):
     """
-    Initialising printer.
+    Initialize the logging and optionally enable verbose mode.
+
+    Args:
+        verbose (bool): Enable detailed logging output. Defaults to False.
     """
     set_verbose(verbose)
     if verbose:

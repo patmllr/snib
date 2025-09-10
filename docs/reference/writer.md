@@ -1,0 +1,3 @@
+# Writer
+
+::: snib.writer.Writer

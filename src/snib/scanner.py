@@ -15,14 +15,56 @@ from .writer import Writer
 
 
 class Scanner:
-    def __init__(
-        self, path: Path, config: dict
-    ):  # TODO: add config to all module classes constructors if needed
+    """
+    The core scanning engine of Snib.
+
+    The Scanner traverses a project directory, applies include/exclude
+    filters, builds structured `Section` objects, and prepares them
+    for formatting and chunking into prompt-ready text.
+
+    It integrates with:
+    - `Formatter` (to structure prompt text)
+    - `Chunker` (to split large outputs into chunks)
+    - `Writer` (to persist prompt files to disk)
+
+    Attributes:
+        path (Path): Root project directory to scan.
+        config (dict): Parsed configuration dictionary (from `snibconfig.toml`).
+    """
+
+    def __init__(self, path: Path, config: dict):
+        """
+        Initialize a Scanner instance.
+
+        Args:
+            path (Path): Project root directory.
+            config (dict): Snib configuration dictionary.
+        """
+        # TODO: add config to all module classes constructors if needed
         self.path = Path(path).resolve()
         self.config = config
 
     def _collect_sections(self, description, include, exclude, task) -> list[Section]:
+        """
+        Collects structured project sections for prompt generation.
 
+        This includes:
+        - Project description
+        - Task instruction (from config)
+        - Filter summary (include/exclude patterns and stats)
+        - Project tree
+        - Individual file contents (included files only)
+
+        Args:
+            description (str): Project description text.
+            include (list[str]): Include patterns (globs/prefixes).
+            exclude (list[str]): Exclude patterns (globs/prefixes).
+            task (str): Task key (looked up in `task_dict` in config).
+
+        Returns:
+            list[Section]: A list of `Section` objects representing
+                different parts of the project.
+        """
         logger.debug("Collecting sections")
 
         all_files = [f for f in self.path.rglob("*") if f.is_file()]
@@ -42,8 +84,8 @@ class Scanner:
         sections.append(
             Section(
                 type="filters",
-                include=include,
-                exclude=exclude,
+                include=include,  # TODO: included_files ?
+                exclude=exclude,  # TODO: excluded_files ?
                 include_stats=include_stats,
                 exclude_stats=exclude_stats,
             )
@@ -72,17 +114,22 @@ class Scanner:
 
         return sections
 
-    # ---------------------------------------------------------
-    # Helper function: seperate patterns in globs and prefixes
-    # ---------------------------------------------------------
     def _split_patterns(self, patterns: list[str]) -> tuple[list[str], list[str]]:
         """
-        Seperates patterns in globs und prefixes (directories/files).
+        Splits patterns into glob patterns and prefix patterns.
 
-        Example:
-            "*.py"          -> glob
-            "src/snib"      -> prefix
-            "utils.py"      -> prefix (direct filename)
+        Examples:
+            "*.py"     -> glob
+            "src/snib" -> prefix
+            "utils.py" -> prefix (exact filename)
+
+        Args:
+            patterns (list[str]): List of pattern strings.
+
+        Returns:
+            tuple[list[str], list[str]]:
+                - globs: Glob-style patterns (with `*`, `?`).
+                - prefixes: Exact filenames or directory prefixes.
         """
         globs = []
         prefixes = []
@@ -94,9 +141,6 @@ class Scanner:
                 prefixes.append(p)
         return globs, prefixes
 
-    # ---------------------------------------------------------
-    # Helper function: match directories/filenames vs patterns
-    # ---------------------------------------------------------
     def _match_patterns(
         self,
         rel_path: str,
@@ -105,14 +149,24 @@ class Scanner:
         prefix_patterns: list[str],
     ) -> bool:
         """
-        Checks, wether rel_path or filename matches any patterns.
+        Checks whether a relative path or filename matches any patterns.
 
-        - Checking glob-patterns for filenames and relative paths.
-        - Checking prefix-patterns for:
-            - exact relative path
-            - beggins with prefix (e.g. "src/snib")
-            - exact filename (e.g. "utils.py")
-            - exists in path (e.g. "__pycache__")
+        Matching logic:
+        - Glob patterns are matched against filenames and full relative paths.
+        - Prefix patterns are matched against:
+            * Exact relative path
+            * Path starting with prefix (e.g. "src/snib")
+            * Exact filename (e.g. "utils.py")
+            * Path parts containing prefix (e.g. `__pycache__`).
+
+        Args:
+            rel_path (str): Relative path from project root.
+            file_name (str): Filename only.
+            glob_patterns (list[str]): Patterns with wildcards.
+            prefix_patterns (list[str]): Exact path or filename prefixes.
+
+        Returns:
+            bool: True if path matches any pattern, else False.
         """
         # glob check
         for g in glob_patterns:
@@ -133,17 +187,21 @@ class Scanner:
 
         return False
 
-    # ---------------------------------------------------------
-    # Helper function: Optimized Scan-Function with os.walk (fast!)
-    # ---------------------------------------------------------
     def _scan_files(self, root: Path, includes=None, excludes=None) -> list[Path]:
         """
-        Scanns a project directory for files.
+        Scans the project directory for files using include/exclude filters.
 
-        - includes = list of patterns (default: ["*"])
-        - excludes = list of patterns (default: [])
+        - Uses `os.walk` for efficient traversal.
+        - Excludes whole directories early for speed.
+        - Applies both glob and prefix matching.
 
-        return: list of path objects (filtered).
+        Args:
+            root (Path): Root directory to scan.
+            includes (list[str] | None): Include patterns (default: `["*"]`).
+            excludes (list[str] | None): Exclude patterns (default: `[]`).
+
+        Returns:
+            list[Path]: List of included file paths.
         """
         includes = includes or ["*"]
         excludes = excludes or []
@@ -193,8 +251,14 @@ class Scanner:
         self, files: list[Path], type_label: str
     ) -> FilterStats:
         """
-        Calculates FilterStats for a list of files.
-        type_label: "included" or "excluded"
+        Calculates file statistics for a filter set.
+
+        Args:
+            files (list[Path]): Files to analyze.
+            type_label (str): Either `"included"` or `"excluded"`.
+
+        Returns:
+            FilterStats: Number of files and total size in bytes.
         """
         stats = FilterStats(type=type_label)
 
@@ -206,7 +270,27 @@ class Scanner:
         return stats
 
     def scan(self, description, include, exclude, chunk_size, force, task):
+        """
+        Executes the scanning pipeline.
 
+        Workflow:
+        1. Collects project sections (`_collect_sections`).
+        2. Formats them into prompt-ready text (`Formatter`).
+        3. Splits into chunks (`Chunker`).
+        4. Prepends headers for multi-file prompts.
+        5. Writes results into `prompts` (`Writer`).
+
+        Args:
+            description (str): Project description text.
+            include (list[str]): Include patterns.
+            exclude (list[str]): Exclude patterns.
+            chunk_size (int): Maximum chunk size (characters).
+            force (bool): If True, overwrite existing outputs.
+            task (str): Task key for instructions.
+
+        Returns:
+            None: Results are written to disk in `prompts`.
+        """
         logger.info(f"Scanning {self.path}")
 
         sections = self._collect_sections(description, include, exclude, task)

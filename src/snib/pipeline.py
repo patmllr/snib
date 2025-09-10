@@ -22,21 +22,44 @@ from .utils import (
 
 
 class SnibPipeline:
+    """
+    Core pipeline class for initializing, scanning, and cleaning.
+
+    Handles all app.commands:
+    - `init`: creates project configuration and prompts folder.
+    - `scan`: performs file collection, filtering, and chunking.
+    - `clean`: deletes configuration files and/or output folders.
+    """
+
     def __init__(self, config=None):  # TODO: what comes in here?
+        """
+        Initializes a SnibPipeline instance.
+
+        Args:
+            config (dict, optional): Optional configuration dictionary. Defaults to None.
+        """
         self.config = config
 
     def init(
         self, path: Path = Path.cwd(), preset: str = None, custom_preset: Path = None
     ):
         """
-        Initialize snib in the given project directory.
+        Initializes Snib in the given project directory.
 
-        - Creates a `snibconfig.toml` configuration file using either:
-            * a specified preset, or
-            * a custom.toml file, or
-            * the built-in default config.
-        - Ensures that a `prompts/` output directory exists alongside the config.
-        - If both already exist, initialization is skipped to avoid overwriting.
+        Creates a `snibconfig.toml` using:
+        - a built-in default,
+        - a named preset, or
+        - a custom TOML file.
+
+        Ensures that a `prompts/` folder exists. Skips creation if files/folders already exist.
+
+        Args:
+            path (Path, optional): Project directory to initialize. Defaults to current working directory.
+            preset (str, optional): Name of a built-in preset to use. Defaults to None.
+            custom_preset (Path, optional): Path to a custom preset TOML file. Defaults to None.
+
+        Raises:
+            typer.Exit: If both `preset` and `custom_preset` are provided, or if errors occur.
         """
         config_path = path / SNIB_CONFIG_FILE
         prompts_dir = path / SNIB_PROMPTS_DIR
@@ -93,7 +116,31 @@ class SnibPipeline:
         chunk_size: int,
         force: bool,
     ):
-        """Runs the scanning pipeline"""
+        """
+        Runs the Snib scanning pipeline on the specified project.
+
+        Steps:
+        - Load the project configuration (`snibconfig.toml`).
+        - Validate presence of output folder.
+        - Merge CLI filters with configuration filters.
+        - Apply smart include/exclude rules.
+        - Detect conflicts between include and exclude patterns.
+        - Perform the actual scanning and chunking using the `Scanner`.
+
+        Args:
+            path (Path): Project directory.
+            description (str): Optional project description or change summary.
+            task (str): Optional task name from available AI instructions.
+            include_raw (str): Raw comma-separated include patterns.
+            exclude_raw (str): Raw comma-separated exclude patterns.
+            no_default_exclude (bool): If True, disables default exclusions.
+            smart (bool): Enables smart filtering for code files.
+            chunk_size (int): Max number of characters per prompt chunk.
+            force (bool): Overwrite existing output files without confirmation.
+
+        Raises:
+            typer.Exit: If configuration or output folder is missing.
+        """
         # config = SNIB_DEFAULT_CONFIG  # TODO: del this?
         config_path = path / SNIB_CONFIG_FILE
         output_path = path / SNIB_PROMPTS_DIR
@@ -185,7 +232,21 @@ class SnibPipeline:
         scanner.scan(description, include, exclude, chunk_size, force, task)
 
     def clean(self, path: Path, force: bool, config_only: bool, output_only: bool):
-        """Cleans output folder and/or config file"""
+        """
+        Cleans project by removing the `snibconfig.toml` and/or `prompts` folder.
+
+        Default behavior deletes both config and output folder unless restricted by flags.
+
+        Args:
+            path (Path): Project directory.
+            force (bool): If True, skips confirmation prompts.
+            config_only (bool): If True, only deletes `snibconfig.toml`.
+            output_only (bool): If True, only deletes `prompts/` folder.
+
+        Raises:
+            typer.Exit: If no files/folders to delete or operation aborted by user.
+            typer.Exit: If conflicting flags are provided (`config_only` and `output_only`).
+        """
         # checks flags conflict
         if config_only and output_only:
             logger.error("--config-only and --output-only cannot be used together.")

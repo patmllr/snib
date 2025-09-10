@@ -30,3 +30,6 @@ prompts/
 # coverage reports
 htmlcov/
 .coverage
+
+# dotenv
+.env

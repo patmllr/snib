@@ -82,7 +82,9 @@ SNIB_DEFAULT_CONFIG = {
         "chunk_size": 30000,
         "force": False,
     },
-    "ai": {"model": "gpt-4"},  # TODO: add for later use with APIs
+    "ai": {
+        "model": "gpt-4"
+    },  # TODO: add for later use with APIs (delete this for now)!
 }
 
 SNIB_CONFIG_FILE = "snibconfig.toml"
@@ -92,7 +94,18 @@ SNIB_PROMPTS_DIR = "prompts"
 def write_config(
     path: Path = Path(SNIB_CONFIG_FILE), content: str = SNIB_DEFAULT_CONFIG
 ):
-    """Generates new _config.toml with defaults or presets."""
+    """
+    Write a new snib configuration file in TOML format.
+
+    If the file already exists, raises a FileExistsError.
+
+    Args:
+        path (Path, optional): Path to write the config file. Defaults to SNIB_CONFIG_FILE.
+        content (dict, optional): Dictionary representing the configuration. Defaults to SNIB_DEFAULT_CONFIG.
+
+    Raises:
+        FileExistsError: If the config file already exists.
+    """
     if path.exists():
         raise FileExistsError(f"{path} already exists.")
     toml.dump(
@@ -101,13 +114,33 @@ def write_config(
 
 
 def load_config(path: Path = Path(SNIB_CONFIG_FILE)) -> dict:
-    """Loads config files or raises FileNotFoundError if not found."""
+    """
+    Load a snib configuration from a TOML file.
+
+    Args:
+        path (Path, optional): Path to the config file. Defaults to SNIB_CONFIG_FILE.
+
+    Returns:
+        dict | None: Loaded configuration dictionary or None if the file does not exist.
+    """
     if not path.exists():
-        return None
+        return None  # TODO: raise FileNotFoundError(f"{path} does not exist.") -> is there sense in returning None?
     return toml.load(path.open("r"))
 
 
 def load_preset(name: str) -> dict:
+    """
+    Load a preset configuration from the built-in `presets`.
+
+    Args:
+        name (str): Name of the preset (without '.toml').
+
+    Returns:
+        dict: Preset configuration dictionary.
+
+    Raises:
+        ValueError: If the preset file does not exist in the `presets`.
+    """
     preset_file = f"{name}.toml"
     try:
         with resources.open_text(presets, preset_file) as f:

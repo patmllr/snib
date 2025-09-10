@@ -4,8 +4,39 @@ from .utils import format_size
 
 
 class Formatter:
+    """
+    Formatter converts project sections into prompt-ready text.
+
+    This class processes a list of Section objects (info, description, task,
+    filters, project tree, file contents) and formats them into text blocks
+    suitable for AI prompting. It also provides helper functions to format
+    statistics about included/excluded files.
+    """
+
     def to_prompt_text(self, sections: list[Section]) -> list[str]:
-        logger.debug("Converting sections to promptready text")
+        """
+        Convert a list of Section objects into a list of prompt-ready strings.
+
+        Each section type is formatted differently:
+        - info: general information about the project
+        - description: project description
+        - task: AI task instructions
+        - filters: included/excluded patterns with statistics
+        - tree: project folder tree
+        - file: actual file content with path header
+
+        Args:
+            sections (list[Section]): A list of Section objects representing
+                different parts of the project scan.
+
+        Returns:
+            list[str]: A list of formatted strings, each representing a
+                section. (This gets passed to the chunker.)
+
+        Notes:
+            - INFO, DESCRIPTION and TASK sections are skipped if empty.
+        """
+        logger.debug("Converting sections to prompt-ready text")
         texts = []
         for s in sections:
             if s.type == "info":
@@ -50,7 +81,15 @@ class Formatter:
 
     def _format_stats(self, stats: FilterStats) -> str:
         """
-        Formats FilterStats readably with format_size()
-        Shows number of files and total size in B/KB/MB.
+        Format FilterStats for human-readable output.
+
+        Shows number of files and total size using readable units. (B/KB/MB/GB)
+
+        Args:
+            stats (FilterStats): Statistics object containing file count
+                and total size in bytes.
+
+        Returns:
+            str: Formatted string, e.g. "files: 10, total size: 2.5 MB".
         """
         return f"files: {stats.files}, total size: {format_size(stats.size)}"
