@@ -39,6 +39,7 @@ dev = [
     "mkdocs-material",
     "mkdocstrings",
     "mkdocstrings-python",
+    "pymdown-extensions",
 ]
 
 [project.urls]

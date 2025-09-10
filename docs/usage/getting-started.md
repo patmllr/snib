@@ -1,6 +1,6 @@
 # Getting Started
 
-## 📦 Installation 
+## Installation 
 
 ```bash
 pip install snib
@@ -8,75 +8,135 @@ pip install snib
 
 Alternatively download the latest wheel here: [Latest Release](https://github.com/patmllr/snib/releases/latest)
 
-### 🧰 Recommended setup
+!!! tip "Recommended Setup"
 
-1. Create a Python virtual environment in your project folder:
+    1. Navigate to your project folder:
 
-```bash
-python -m venv venv
-```
+        ```bash
+        cd /path/to/your/project
+        ```
 
-2. Activate the virtual environment and install Snib as shown above.
+    2. Create a Python virtual environment in your project folder:
 
-## 🗂️ Example 
+        ```bash
+        python -m venv venv
+        ```
+
+    3. Activate the virtual environment:
+
+        - Linux/macOS:
+
+          ```bash
+          source venv/bin/activate
+          ```
+
+        - Windows CMD:
+
+          ```text
+          venv\Scripts\activate
+          ```
+
+    4. Install snib as shown above.
+
+## Running Snib 
+
+After setting up a virtual environment and installing snib, you can run commands directly inside your project folder. Start by initializing your project:
 
 ```bash
 snib init
-snib --verbose scan -e "dist, junk" --chunk-size 100000 --smart
+```
+This generates the default config and output folder:
+
+!!!success "Initialisation succesfull"
+    [NOTE] /path/to/your/project/snibconfig.toml generated with defaults
+
+    [NOTE] Output folder created at /path/to/your/project/prompts
+
+Now scan your project. For small to medium projects, `--smart` is usually enough:
+
+```bash
+snib scan --smart
 ```
 
-```text
-#[INFO]
-Please do not give output until all prompt files are sent. Prompt file 1/4
+!!! info "Large or complex projects"
+    Make sure you don’t include unnecessary files in your scan.
+    Use `--exclude` and/or `--include` with patterns, or edit snibconfig.toml directly.
+    Presets can also help for common project types (see [Presets](presets.md)).
 
-#[DESCRIPTION]
-This is a demo.
+You can also guide the AI with a description and a task (see [Tasks](tasks.md)):
 
-#[TASK]
-Debug: Analyze the code and highlight potential errors, bugs, or inconsistencies.
-
-#[INCLUDE/EXCLUDE]
-Include patterns: ['*.py']
-Exclude patterns: ['prompts', 'dist', 'junk', 'venv', '__pycache__']
-Included files: files: 16, total size: 28.86 KB
-Excluded files: files: 1943, total size: 262.11 MB
-
-#[PROJECT TREE]
-snib
-├── src
-│   └── snib
-│       ├── __init__.py
-│       ├── __main__.py
-│       ├── ...
-│       └── writer.py
-└── tests
-    ├── test_chunker.py
-    ├── ...
-    └── test_writer.py
-
-#[FILE] tests\test_chunker.py
-import pytest
-from snib.chunker import Chunker
-
-...
-
-#[INFO]
-Prompt file 4/4
-
-...
+```bash
+snib scan --smart --description "I want to change ..." --task refactor
 ```
 
-After running `snib scan`, prompt files are written to the `prompts` folder and are ready to get copied to the clipboard:
+After scanning, snib creates prompt files (`prompt_1.txt`, …) in the `prompts` folder.
 
-```text
-prompt_1.txt
-...
-prompt_4.txt
+??? note "Show Prompt Example"
+    <small>
+
+    ```text
+    #[INFO]
+    Please do not give output until all prompt files are sent. Prompt file 1/4
+
+    #[DESCRIPTION]
+    I want to change ...
+
+    #[TASK]
+    Refactor: Suggest refactorings to make the code cleaner, more readable, and maintainable.
+
+    #[INCLUDE/EXCLUDE]
+    Include patterns: ['*.py']
+    Exclude patterns: ['venv', 'prompts', ..., 'snibconfig.toml']
+    Included files: files: 34, total size: 92.79 KB
+    Excluded files: files: 20181, total size: 339.37 MB
+
+    #[PROJECT TREE]
+    snib
+    ├── src
+    │   └── snib
+    │       ├── __init__.py
+    │       ├── __main__.py
+    │       ├── ...
+    │       └── writer.py
+    └── tests
+        ├── test_chunker.py
+        ├── ...
+        └── test_writer.py
+
+    #[FILE] tests\test_chunker.py
+    import pytest
+    from snib.chunker import Chunker
+
+    ...
+
+    #[INFO]
+    Prompt file 4/4
+
+    ...
+    ```
+
+    </small>
+
+For large models you might want to increase the chunk size:
+
+```bash
+snib scan --smart --description "..." --task refactor --chunk-size 100000
 ```
 
-## 👍 Rule of Thumb for Chunk Size
+!!! tip "Choosing the right chunk size"
+    See the [Chunk Size Table](#chunk-size) below.
 
-Since Snib chunks by characters, the following guidelines can help to estimate the chunk size:
+To reset everything (e.g. broken config), run:
+
+```bash
+snib clean 
+```
+
+!!! info "Running outside the project path"
+    If you don’t run snib from your project folder, use the `--path` option with every command (`init`, `scan`, `clean`).
+
+
+## Chunk Size
 
 | Model / LLM           | Max Context (Tokens) | Recommended `--chunk-size` (Chars) | Notes                                      |
 | --------------------- | -------------------- | ---------------------------------- | ------------------------------------------ |
@@ -86,8 +146,13 @@ Since Snib chunks by characters, the following guidelines can help to estimate t
 | GPT-4-32k             | 32,000               | 110,000                            |                                            |
 | GPT-4o / GPT-5 (128k) | 128,000              | 450,000 – 500,000                  | Very large models, massive chunks possible |
 
-## 🧠 Best Practices
+!!! info "Rule of Thumb"
+    These are rough estimates to guide you when setting `--chunk-size`. Snib chunks by characters, not tokens, so chunk sizes vary by model. Always adjust based on your model's context limit and safety margin.
 
-- Use a virtual environment inside your project directory.
-- Run with `--smart` to focus on source code and skip large irrelevant files.  
-- Adjust `--chunk-size` for your target LLM (see [Chunk Size Table](#-rule-of-thumb-for-chunk-size)).  
+## Advanced
+
+- `--no-default-excludes`: Don’t exclude venv, prompts, or snibconfig.toml.
+- `--force`: Runs commands without confirmation.
+
+!!! warning "Use with caution"
+    The `--force` option can overwrite existing files or create unwanted text files if your include/exclude rules are not set correctly.

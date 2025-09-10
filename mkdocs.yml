@@ -1,6 +1,25 @@
-site_name: Snib Documentation
+site_name: Snib Docs
+site_url: https://patmllr.github.io/snib/
+use_directory_urls: true
 theme:
   name: material
+  logo: assets/logo.png
+  favicon: assets/favicon.svg
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - palette.toggle
 
 plugins:
   - search
@@ -11,3 +30,16 @@ plugins:
             docstring_style: google
             show_source: true
             merge_init_into_class: true
+            filters: [] 
+
+markdown_extensions:
+  - def_list
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+copyright: Copyright &copy; 2025 Patrick Müller

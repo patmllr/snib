@@ -1,4 +1,4 @@
-# 🌱 Contributing New Features
+# Contributing New Features
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/your-feature`

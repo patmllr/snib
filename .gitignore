@@ -27,6 +27,9 @@ Thumbs.db
 junk/
 prompts/
 
+# site from mkdocs
+site/
+
 # coverage reports
 htmlcov/
 .coverage

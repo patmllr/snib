@@ -1,7 +1,6 @@
 # Formatter
 
-This module handles converting scanned sections into prompt-ready text for Snib.
-
-## Formatter
-
 ::: snib.formatter.Formatter
+    options:
+        show_signature: true
+        show_root_heading: true

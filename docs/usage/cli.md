@@ -1,10 +1,10 @@
-# ⚡ CLI Usage
+# CLI Usage
 
 ```bash
 snib [OPTIONS] COMMAND [ARGS]...
 ```
 
-### ⚙️ Global Options
+## Global Options
 
 | Option                     | Description                              |
 | -------------------------- | ---------------------------------------- |
@@ -13,7 +13,7 @@ snib [OPTIONS] COMMAND [ARGS]...
 | `--show-completion`        | Show completion script                   |
 | `--help`                   | Show this message and exit               |
 
-### 📦 Commands
+## Commands
 
 `init`
 

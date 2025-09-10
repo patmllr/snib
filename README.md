@@ -15,13 +15,12 @@
 
 ## 💡 Why Snib?
 
-Today there are many AI coding assistants (Copilot, Cursor, Tabnine, …). They are powerful but often expensive, tied to specific models, and in some cases not as good at reasoning as other LLMs available on the web.
+Today there are many AI coding assistants such as Copilot, Cursor, and Tabnine. They are powerful but often expensive, tied to specific models, and in some cases not as good at reasoning as other LLMs available on the web.
 
 Snib keeps you flexible:
 - Use any LLM - free, paid, reasoning-strong, or lightweight.  
 - Use your favorite model’s web UI while Snib prepares your code for input.
 - Get AI assistance without handing over control of your entire project.
-- Keep full ownership of your project. The AI assists, but you remain the developer.
 
 ## 🚀 Features
 
@@ -29,17 +28,23 @@ Snib keeps you flexible:
 - Flexibly include or exclude files/folders using globs and prefix patterns.  
 - Generate prompt-ready chunks with configurable size.  
 - Built-in tasks: `debug`, `comment`, `refactor`, `optimize`, `summarize`, `document`, `test`, `analyze`.  
-- Smart mode automatically focuses on source code and ignores irrelevant files.  
+- Smart mode: focus on source code, ignore irrelevant files.
 - Detailed logging at INFO or DEBUG level.  
 - Simple CLI with three commands: `init`, `scan`, and `clean`.  
 
-## ⚡ Quick Start
+## 📦 Installation 
 
 ```bash
-cd /path/to/your/project
-python -m venv venv
-source venv/bin/activate # venv\Scripts\activate (Windows CMD)
 pip install snib
+```
+
+Alternatively download the latest wheel here: [Latest Release](https://github.com/patmllr/snib/releases/latest)
+
+## ⚡ Quick Start
+
+```text
+pip install snib
+cd /path/to/your/project
 snib init
 snib scan --smart
 ```

@@ -1,11 +1,11 @@
 # Models
 
-This module contains the main data structures for Snib.
-
-## FilterStats
-
 ::: snib.models.FilterStats
-
-## Section
+    options:
+        show_signature: true
+        show_root_heading: true
 
 ::: snib.models.Section
+    options:
+        show_signature: true
+        show_root_heading: true

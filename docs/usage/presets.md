@@ -1,87 +1,90 @@
-# 🔧 Presets
+# Presets
 
-Presets are predefined `.toml` configuration files that simplify using Snib across different project types (Python, Web, C++, Unity, etc.). They’re optional - without a preset, Snib falls back to the default configuration.
+Presets are predefined `.toml` configuration files that simplify using snib across different project types (Python, Web, C++, Unity, etc.). They’re optional - without a preset, snib falls back to the default configuration.
 
-## 📂 Location
+!!! question "Why use presets"
+    Presets save you time and provide a solid starting point. They also help maintain consistency across projects.
 
-```bash
-src/snib/presets/
-```
-
-## 🏗️ Structure
+## Structure
 
 Each preset follows the same structure as the default `snibconfig.toml`:
 
-```text
-[config]
-description = "Preset description"
-author = "author"
-version = "1.0"
+??? note "Show Default Config"
+    <small>
 
-[project]
-path = "."
-description = ""
+    ```text
+    [config]
+    description = "Preset description"
+    author = "author"
+    version = "1.0"
 
-[instruction]
-task = ""
+    [project]
+    path = "."
+    description = ""
 
-[filters]
-include = []
-exclude = []
-smart_include = []
-smart_exclude = []
-default_exclude = []
-no_default_exclude = false
-smart = false
+    [instruction]
+    task = ""
 
-[output]
-chunk_size = 30000
-force = false
+    [filters]
+    include = []
+    exclude = []
+    smart_include = []
+    smart_exclude = []
+    default_exclude = []
+    no_default_exclude = false
+    smart = false
 
-[instruction.task_dict]
-debug = "Debug: ..."
-comment = "Comment: ..."
-refactor = "Refactor: ..."
-optimize = "Optimize: ..."
-summarize = "Summarize: ..."
-document = "Document: ..."
-test = "Test: ..."
-analyze = "Analyze: ..."
-```
+    [output]
+    chunk_size = 30000
+    force = false
 
-## 🚀 Available Presets
+    [instruction.task_dict]
+    debug = "Debug: ..."
+    comment = "Comment: ..."
+    refactor = "Refactor: ..."
+    optimize = "Optimize: ..."
+    summarize = "Summarize: ..."
+    document = "Document: ..."
+    test = "Test: ..."
+    analyze = "Analyze: ..."
+    ```
+    </small>
+
+## Available Presets
 
 Included: `cpp`, `datascience`, `java`, `python`, `unity`, `unreal`, `web` (.toml)  
 
-💡 These serve as starting points and can be adjusted or extended by the community.
+!!! question "Why is there only so little"
+    These serve as starting points and can be adjusted or extended by the community (see [Contribute Presets](#contribute-presets)).
 
-## 🛠️ Creating Your Own Preset
+## Creating Your Own Preset
 
-1. Copy an existing preset (e.g., `python.toml`).
-2. Adjust the `[filters]` section (include, exclude) to match your project.
-3. Update the `[config]` section.
-4. Test your preset locally on your project with:
+!!! tip "Quick Start"
+    1. Copy an existing preset (e.g., `python.toml`).
+    2. Adjust the `[filters]` section (include, exclude) to match your project.
+    3. Update the `[config]` section.
+    4. Test your preset locally.
 
 ```bash
 snib init --preset-custom "custom.toml"
 snib scan
 ```
 
-## 🤝 Contribute Presets
+## Contribute Presets
 
 Community contributions of new presets or improvements are welcome! 
 
-How to submit a preset:
+!!! info "How to submit a preset"
+    1. Fork the repository.
+    2. Add your preset file in src/snib/presets/ (e.g., rust.toml, go.toml, terraform.toml).
+    3. Make sure your preset:
+        - Uses a descriptive filename (e.g., `rust.toml`, not `preset1.toml`).
+        - Contains a clear `[config]` section.
+        - Has meaningful include / exclude rules.
+        - Has been tested locally.
+    4. Open a Pull Request with a short explanation of:
+        - The project type the preset is for.
+        - Any specifics about the filters.
 
-1. Fork the repository.
-2. Add your preset file in src/snib/presets/ (e.g., rust.toml, go.toml, terraform.toml).
-3. Make sure your preset:
-    - 📖 Contains a clear `[config]` section.
-    - ✔️ Has meaningful include / exclude rules.
-    - 🧪 Has been tested locally.
-    - 🔍 Uses a descriptive filename (e.g., `rust.toml`, not `preset1.toml`).
-4. Open a Pull Request with a short explanation of:
-    - The project type the preset is for.
-    - Any specifics about the filters.
-
-💡 Presets are the easiest way to contribute - even if you don’t know Python.
+!!! tip "Contribute now"
+    Presets are the easiest way to contribute - even if you don’t know Python!

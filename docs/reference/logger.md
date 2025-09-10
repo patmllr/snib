@@ -1,17 +1,16 @@
 # Logger
 
-This module contains the Snib custom logger and utility functions to set verbosity.
-
-## SnibLogger
-
 ::: snib.logger.SnibLogger
-
-## ColoredFormatter
+    options:
+        show_signature: true
+        show_root_heading: true
 
 ::: snib.logger.ColoredFormatter
-
-## Functions
-
-### set_verbose
+    options:
+        show_signature: true
+        show_root_heading: true
 
 ::: snib.logger.set_verbose
+    options:
+        show_signature: true
+        show_root_heading: true
