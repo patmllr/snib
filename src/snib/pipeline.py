@@ -208,9 +208,14 @@ class SnibPipeline:
             exclude = list(set(exclude + config["filters"]["smart_exclude"]))
 
         # detect filter conflicts (exclude wins) #TODO: set exlude or include wins
-        conflicts = detect_pattern_conflicts(include, exclude)
+        conflicts, conflicts_log = detect_pattern_conflicts(include, exclude)
+        if conflicts_log:
+            logger.warning(
+                f"Pattern conflicts detected (Exclude wins): {conflicts_log}"
+            )
+
         if conflicts:
-            logger.warning(f"Pattern conflicts detected (Exclude wins): {conflicts}")
+            # logger.debug(f"Conflicting patterns: {conflicts}")
             # del in include because exlude wins
             include = [p for p in include if not any(p in c for c in conflicts)]
 

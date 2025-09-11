@@ -178,20 +178,25 @@ def detect_pattern_conflicts(includes: list[str], excludes: list[str]) -> set[st
     Returns:
         set[str]: Conflicting include patterns with explanations.
     """
+
     conflicts = set()
+    conflicts_log = set()
     # check each include against each exclude
     for inc in includes:
         for exc in excludes:
-            # exact match
+            # exact match is a conflict
             if inc == exc:
                 conflicts.add(inc)
-            # include eaten by exclude
+                conflicts_log.add(f"{inc} == {exc}")
+            # include eaten by exclude -> fnmatch.fnmatch("*.py", "utils.py") -> False
             elif fnmatch.fnmatch(inc, exc):
-                conflicts.add(f"{inc} (matched by {exc})")
-            # exclude is more specific than include -> overwritten
+                conflicts.add(inc)
+                conflicts_log.add(f"{inc} (matched by {exc})")
+            # exclude is more specific than include -> fnmatch.fnmatch("utils.py", "*.py") -> True DONT ADD TO CONFLICTS!
             elif fnmatch.fnmatch(exc, inc):
-                conflicts.add(f"{inc} (conflicts with {exc})")
-    return conflicts
+                conflicts_log.add(f"{inc} (conflicts with {exc})")
+
+    return conflicts, conflicts_log
 
 
 def check_include_in_exclude(
