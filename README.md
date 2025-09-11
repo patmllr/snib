@@ -2,12 +2,13 @@
 <img src="https://gist.githubusercontent.com/patmllr/4fa5d1b50a1475c91d8323c75de8a2a2/raw/26ea2b9795a70cf65fc753b5b8eb3ac64f300cc7/snib.svg" width="300">
 </h1><br>
 
-
+[![Powered by COFFEE](https://img.shields.io/badge/powered%20by-COFFEE-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)]
 [![PyPI version](https://img.shields.io/pypi/v/snib.svg)](https://pypi.org/project/snib/)
 [![Build](https://github.com/patmllr/snib/actions/workflows/release.yml/badge.svg)](https://github.com/patmllr/snib/actions/workflows/release.yml)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/0f5cf59b56334f75a75892804f237677)](https://app.codacy.com/gh/patmllr/snib/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/0f5cf59b56334f75a75892804f237677)](https://app.codacy.com/gh/patmllr/snib/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
 [![Issues](https://img.shields.io/github/issues/patmllr/snib)](https://github.com/patmllr/snib/issues)
 [![Pull Requests](https://img.shields.io/github/issues-pr/patmllr/snib)](https://github.com/patmllr/snib/pulls)
 
@@ -53,7 +54,7 @@ Full documentation is available at [https://patmllr.github.io/snib/](https://pat
 
 ## 🤝 Contribute
 
-Help improve Snib by contributing presets, features, bug fixes, or docs. See [Presets](https://patmllr.github.io/snib/usage/presets/) and [Development](https://patmllr.github.io/snib/development/contributing/).
+Help improve snib by contributing presets, features, or bug fixes. See [Contributing](https://patmllr.github.io/snib/development/contributing/).
 
 ## 📜 License
 
