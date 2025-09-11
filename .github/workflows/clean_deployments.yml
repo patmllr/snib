@@ -18,22 +18,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Fetching all deployments..."
-          DEPLOYMENTS=$(gh api -H "Accept: application/vnd.github+json" \
-            /repos/${GITHUB_REPOSITORY}/deployments --paginate)
+            echo "Fetch all github-pages deployments..."
+            ALL_DEPLOYMENTS=$(gh api -H "Accept: application/vnd.github+json" \
+            /repos/${GITHUB_REPOSITORY}/deployments?environment=github-pages --paginate)
 
-          # filter deployment IDs: only github-pages with status not active
-          IDS=$(echo "$DEPLOYMENTS" | jq -r '.[] | select(.environment=="github-pages" and .status!="active") | .id')
+            echo "Get active deployment IDs..."
+            ACTIVE_ID=$(echo "$ALL_DEPLOYMENTS" | jq -r '.[0].id') # newest = active
 
-          COUNT=$(echo "$IDS" | wc -l)
-          echo "Total inactive GitHub Pages deployments: $COUNT"
+            echo "Get all deployment IDs except active..." 
+            IDS=$(echo "$ALL_DEPLOYMENTS" | jq -r ".[].id | select(. != $ACTIVE_ID)")
 
-          if [ "$COUNT" -eq 0 ]; then
-            echo "No inactive deployments to delete."
-            exit 0
-          fi
-
-          for id in $IDS; do
-            echo "Deleting deployment ID $id"
-            gh api -X DELETE /repos/${GITHUB_REPOSITORY}/deployments/$id
-          done
+            for id in $IDS; do
+                echo "Deleting deployment ID $id"
+                gh api -X DELETE /repos/${GITHUB_REPOSITORY}/deployments/$id
+            done
