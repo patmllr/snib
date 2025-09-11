@@ -12,13 +12,13 @@ Alternatively download the latest wheel here: [Latest Release](https://github.co
 
     1. Navigate to your project folder:
 
-        ```bash
+        ```text
         cd /path/to/your/project
         ```
 
     2. Create a Python virtual environment in your project folder:
 
-        ```bash
+        ```text
         python -m venv venv
         ```
 
@@ -26,7 +26,7 @@ Alternatively download the latest wheel here: [Latest Release](https://github.co
 
         - Linux/macOS:
 
-          ```bash
+          ```text
           source venv/bin/activate
           ```
 

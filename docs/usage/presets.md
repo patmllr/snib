@@ -55,7 +55,7 @@ Each preset follows the same structure as the default `snibconfig.toml`:
 Included: `cpp`, `datascience`, `java`, `python`, `unity`, `unreal`, `web` (.toml)  
 
 !!! question "Why is there only so little"
-    These serve as starting points and can be adjusted or extended by the community (see [Contribute Presets](#contribute-presets)).
+    These serve as starting points and can be adjusted or extended by the community.
 
 ## Creating Your Own Preset
 
@@ -70,21 +70,4 @@ snib init --preset-custom "custom.toml"
 snib scan
 ```
 
-## Contribute Presets
-
-Community contributions of new presets or improvements are welcome! 
-
-!!! info "How to submit a preset"
-    1. Fork the repository.
-    2. Add your preset file in src/snib/presets/ (e.g., rust.toml, go.toml, terraform.toml).
-    3. Make sure your preset:
-        - Uses a descriptive filename (e.g., `rust.toml`, not `preset1.toml`).
-        - Contains a clear `[config]` section.
-        - Has meaningful include / exclude rules.
-        - Has been tested locally.
-    4. Open a Pull Request with a short explanation of:
-        - The project type the preset is for.
-        - Any specifics about the filters.
-
-!!! tip "Contribute now"
-    Presets are the easiest way to contribute - even if you don’t know Python!
+If you’d like to support the community, feel free to contribute your own presets. See [Contributing](../development/contributing.md).
