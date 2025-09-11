@@ -2,7 +2,7 @@
 <img src="https://gist.githubusercontent.com/patmllr/4fa5d1b50a1475c91d8323c75de8a2a2/raw/26ea2b9795a70cf65fc753b5b8eb3ac64f300cc7/snib.svg" width="300">
 </h1><br>
 
-[Powered by COFFEE](https://img.shields.io/badge/powered%20by-COFFEE-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)
+[![Powered by COFFEE](https://img.shields.io/badge/powered%20by-COFFEE-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://github.com/patmllr/snib)
 [![PyPI version](https://img.shields.io/pypi/v/snib.svg)](https://pypi.org/project/snib/)
 [![Build](https://github.com/patmllr/snib/actions/workflows/release.yml/badge.svg)](https://github.com/patmllr/snib/actions/workflows/release.yml)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/0f5cf59b56334f75a75892804f237677)](https://app.codacy.com/gh/patmllr/snib/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
