@@ -58,10 +58,48 @@ Now scan your project. For small to medium projects, `--smart` is usually enough
 snib scan --smart
 ```
 
+On medium-sized projects you may see a warning like this:
+
+!!! warning "Too many files included"
+    [WARN] Included files exceed 100. This may lead to large prompts and higher costs.
+
+In such cases, review your include/exclude rules.
+A good starting point is to check your project directory for files or folders that don’t need to be processed.
+
+For example, if you have a folder called junk that also contains source code, the `--smart` option includes it by default.
+You should explicitly exclude it using the `--exclude` option:
+
+```bash
+snib scan --smart --exclude "junk"
+```
+
 !!! info "Large or complex projects"
-    Make sure you don’t include unnecessary files in your scan.
-    Use `--exclude` and/or `--include` with patterns, or edit snibconfig.toml directly.
+    Keep your scans lean by excluding irrelevant files.  
+    Use `--exclude` / `--include` patterns or edit `snibconfig.toml`.  
     Presets can also help for common project types (see [Presets](presets.md)).
+
+
+If you try to include and exclude the same pattern, snib detects a pattern conflict:
+
+```bash
+snib scan --smart --exclude "junk" --include "junk"
+```
+
+!!! warning "Pattern conflicts"
+    [WARN] Pattern conflicts detected (Exclude wins): {'junk'}
+
+Snib resolves such conflicts by always letting the exclude win.
+This makes it possible to combine broad includes with specific excludes:
+
+```bash
+snib scan --smart --exclude "test.py"
+```
+
+!!! warning "Pattern conflicts"
+    [WARN] Pattern conflicts detected (Exclude wins): {'*.py (conflicts with test.py)'}
+
+Here `--smart` includes all `*.py` files, but the explicit exclude removes `test.py`.
+Thanks to the exclude wins rule, all Python files are included except `test.py`.
 
 You can also guide the AI with a description and a task (see [Tasks](tasks.md)):
 
@@ -156,3 +194,6 @@ snib clean
 
 !!! warning "Use with caution"
     The `--force` option can overwrite existing files or create unwanted text files if your include/exclude rules are not set correctly.
+
+!!! info "Commands and Options"
+    For a list of all commands and options take a look at [CLI Usage](cli.md).

@@ -39,7 +39,6 @@ Scans your project and generates prompt-ready chunks.
 | `--no-default-excludes` | `-E`  | Disable automatic exclusion of `venv`, `promptready`, `__pycache__`                                     |
 | `--smart`               | `-s`  | Smart mode: only code files, ignores logs/large files                                                   |
 | `--chunk-size INT`      | `-c`  | Max characters per chunk (default: 30,000)                                                              |
-| `--output-dir PATH`     | `-o`  | Output folder (default: `promptready`)                                                                  |
 | `--force`               | `-f`  | Force overwrite existing prompt files                                                                   |
 | `--help`                |       | Show this message and exit                                                                              |
 

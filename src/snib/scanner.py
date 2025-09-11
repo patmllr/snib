@@ -2,12 +2,14 @@ import fnmatch
 import os
 from pathlib import Path
 
+import typer
+
 from .chunker import Chunker
 from .config import SNIB_PROMPTS_DIR
 from .formatter import Formatter
 from .logger import logger
 from .models import FilterStats, Section
-from .utils import build_tree
+from .utils import build_tree, format_size
 from .writer import Writer
 
 # TODO: typer progress bar for scan
@@ -43,8 +45,13 @@ class Scanner:
         # TODO: add config to all module classes constructors if needed
         self.path = Path(path).resolve()
         self.config = config
+        self.include_warning_num_files = (
+            100  # warn if > 100 files included TODO: mby add this to config?
+        )
 
-    def _collect_sections(self, description, include, exclude, task) -> list[Section]:
+    def _collect_sections(
+        self, description, include, exclude, force, task
+    ) -> list[Section]:
         """
         Collects structured project sections for prompt generation.
 
@@ -73,6 +80,26 @@ class Scanner:
 
         include_stats = self._calculate_filter_stats(included_files, "included")
         exclude_stats = self._calculate_filter_stats(excluded_files, "excluded")
+
+        # let the user know what was included/excluded
+        logger.info(
+            f"Included stats: Files: {include_stats.files}, Size: {format_size(include_stats.size)}"
+        )
+        logger.info(
+            f"Excluded stats: Files: {exclude_stats.files}, Size: {format_size(exclude_stats.size)}"
+        )
+
+        # warn the user if he includes alot of files, e.g > 100
+        if include_stats.files > self.include_warning_num_files:
+            logger.warning(
+                f"Included files exceed {self.include_warning_num_files}. This may lead to large prompts and increased costs."
+            )
+            logger.notice("Consider refining your include/exclude patterns.")
+            if not force:
+                confirm = logger.confirm("Do you want to proceed?", default=False)
+                if not confirm:
+                    logger.info("Aborted.")
+                    raise typer.Exit()
 
         task_dict = self.config["instruction"]["task_dict"]
         instruction = task_dict.get(task, "")
@@ -293,7 +320,7 @@ class Scanner:
         """
         logger.info(f"Scanning {self.path}")
 
-        sections = self._collect_sections(description, include, exclude, task)
+        sections = self._collect_sections(description, include, exclude, force, task)
         formatter = Formatter()
         formatted = formatter.to_prompt_text(sections)
 
@@ -318,7 +345,9 @@ class Scanner:
 
             # works with empty info section
             info_texts = formatter.to_prompt_text(
-                [Section(type="info", content=header)]
+                [
+                    Section(type="info", content=header)
+                ]  # this executes to_prompt_text i times!
             )
             if info_texts:
                 chunks_with_header.append(info_texts[0] + chunk)

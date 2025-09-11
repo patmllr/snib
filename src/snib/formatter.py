@@ -36,7 +36,7 @@ class Formatter:
         Notes:
             - INFO, DESCRIPTION and TASK sections are skipped if empty.
         """
-        logger.debug("Converting sections to prompt-ready text")
+
         texts = []
         for s in sections:
             if s.type == "info":
