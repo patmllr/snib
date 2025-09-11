@@ -14,25 +14,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Delete old GitHub Pages deployments
+      - name: Delete inactive GitHub Pages deployments
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          KEEP: 3   # number of last deployments to keep
         run: |
           echo "Fetching all deployments..."
           DEPLOYMENTS=$(gh api -H "Accept: application/vnd.github+json" \
             /repos/${GITHUB_REPOSITORY}/deployments --paginate)
-          
-          # filter deployment IDs: only github-pages, exclude releases
-          IDS=$(echo "$DEPLOYMENTS" | jq -r '.[] | select(.environment=="github-pages") | .id')
+
+          # filter deployment IDs: only github-pages with status not active
+          IDS=$(echo "$DEPLOYMENTS" | jq -r '.[] | select(.environment=="github-pages" and .status!="active") | .id')
 
           COUNT=$(echo "$IDS" | wc -l)
-          echo "Total GitHub Pages deployments: $COUNT"
+          echo "Total inactive GitHub Pages deployments: $COUNT"
 
-          # delete old deployments, only keep $KEEP 
-          TO_DELETE=$(echo "$IDS" | head -n -$KEEP)
+          if [ "$COUNT" -eq 0 ]; then
+            echo "No inactive deployments to delete."
+            exit 0
+          fi
 
-          for id in $TO_DELETE; do
+          for id in $IDS; do
             echo "Deleting deployment ID $id"
             gh api -X DELETE /repos/${GITHUB_REPOSITORY}/deployments/$id
           done
