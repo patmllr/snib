@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from snib.chunker import Chunker
+from snib.config import SNIB_DEFAULT_CONFIG
 from snib.formatter import Formatter
 from snib.models import Section
 from snib.scanner import Scanner
@@ -23,8 +24,8 @@ def test_end_to_end_scan(tmp_path):
     # -------------------------------
     # Initialize Scanner
     # -------------------------------
-    scanner = Scanner(tmp_path)
-    # TODO: Scanner.__init__() missing 1 required positional argument: 'config'
+    config = SNIB_DEFAULT_CONFIG
+    scanner = Scanner(tmp_path, config)
 
     include_patterns = ["*.py", "*.js"]
     exclude_patterns = ["*.log"]
@@ -33,7 +34,8 @@ def test_end_to_end_scan(tmp_path):
         description="Test project",
         include=include_patterns,
         exclude=exclude_patterns,
-        task="test",
+        task=config["instruction"].get("task", ""),
+        force=config["output"].get("force", False),
     )
 
     # Check sections collected
@@ -69,7 +71,7 @@ def test_end_to_end_scan(tmp_path):
     # -------------------------------
     output_dir = tmp_path / "output"
     writer = Writer(output_dir)
-    written_files = writer.write_chunks(chunks, force=True, ask_user=False)
+    written_files = writer.write_chunks(chunks, force=True)
     assert all(f.exists() for f in written_files)
     assert len(written_files) == len(chunks)
 
@@ -78,4 +80,4 @@ def test_end_to_end_scan(tmp_path):
     assert not any(output_dir.glob("prompt_*.txt"))
 
 
-# FAILED tests/test_cli_scan.py::test_end_to_end_scan - TypeError: Scanner.__init__() missing 1 required positional argument: 'config'
+# PASSED

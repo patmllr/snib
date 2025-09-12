@@ -1,3 +1,4 @@
+import os
 import time
 from pathlib import Path
 
@@ -5,35 +6,31 @@ import pytest
 
 from snib.config import SNIB_DEFAULT_CONFIG
 from snib.scanner import Scanner
+from snib.utils import check_include_in_exclude, detect_pattern_conflicts
 
 
 # -------------------------------
 # Helper: Build large test projects
 # -------------------------------
 def create_large_project(root: Path, depth=3, width=5, extra_files=None):
-    """
-    Create a virtual project tree.
-    - depth: folder depth
-    - width: number of folders/files per level
-    - extra_files: list of (relative_path, content) to add specific files
-    """
     for d in range(depth):
         for w in range(width):
             folder = root / f"dir{d}_{w}"
             folder.mkdir(parents=True, exist_ok=True)
             for i in range(width):
-                # Python files
                 (folder / f"file{i}.py").write_text(f"print('file{i}')")
-                # Log files
                 (folder / f"file{i}.log").write_text("log data")
-                # JS files
                 (folder / f"file{i}.js").write_text("console.log('hi')")
-    # Extra custom files
     if extra_files:
         for path_str, content in extra_files:
             f = root / path_str
             f.parent.mkdir(parents=True, exist_ok=True)
             f.write_text(content)
+
+
+def normalize_path(p: Path, root: Path):
+    """Get relative path with forward slashes for pattern matching."""
+    return os.path.relpath(p, root).replace("\\", "/")
 
 
 # -------------------------------
@@ -44,41 +41,43 @@ def create_large_project(root: Path, depth=3, width=5, extra_files=None):
     [
         (["*.py"], ["*.log"], True),
         (["*.py", "*.js"], ["*.log"], False),
-        ([], [], True),  # include all
-        (["*.md"], ["dir0_0"], False),  # some edge case
+        ([], [], True),
+        (["*.md"], ["dir0_0"], False),
     ],
 )
 def test_stress_scanner_flags(tmp_path, include, exclude, smart):
-    # Build project
     create_large_project(tmp_path, depth=3, width=5)
-
-    # Initialize scanner
     scanner = Scanner(tmp_path, config=SNIB_DEFAULT_CONFIG)
 
-    # Measure performance
     start = time.time()
     sections = scanner._collect_sections(
         description="Stress test project",
         include=include,
         exclude=exclude,
         task="test",
+        force=True,
     )
     duration = time.time() - start
     print(
         f"\nScan finished in {duration:.2f}s for include={include}, exclude={exclude}"
     )
 
-    # -------------------------------
-    # Assertions: check filters
-    # -------------------------------
-    included_files = [s.path.name for s in sections if s.type == "file"]
-    for f in included_files:
-        for ex in exclude:
-            assert ex not in f, f"Excluded file {f} was included"
-        # Only include matching files
-        if include:
+    included_files = [
+        normalize_path(s.path, scanner.path) for s in sections if s.type == "file"
+    ]
+
+    conflicts, conflicts_log = detect_pattern_conflicts(include, exclude)
+    problematic = check_include_in_exclude(scanner.path, included_files, exclude)
+
+    assert not conflicts, f"Conflicting patterns detected: {conflicts_log}"
+    assert (
+        not problematic
+    ), f"Some included files are in excluded folders: {problematic}"
+
+    if include:
+        for f in included_files:
             assert any(
-                [f.endswith(p.replace("*", "")) for p in include]
+                f.endswith(p.replace("*", "")) for p in include
             ), f"Included file {f} does not match include pattern"
 
 
@@ -88,16 +87,12 @@ def test_stress_scanner_flags(tmp_path, include, exclude, smart):
 def test_empty_project(tmp_path):
     scanner = Scanner(tmp_path, config=SNIB_DEFAULT_CONFIG)
     sections = scanner._collect_sections(
-        description="Empty project",
-        include=["*"],
-        exclude=[],
-        task="test",
+        description="Empty project", include=["*"], exclude=[], task="test", force=True
     )
-    # Only description, task, filters, tree sections expected
+
     types = [s.type for s in sections]
     for t in ["description", "task", "filters", "tree"]:
         assert t in types
-    # No files
     assert all(s.type != "file" for s in sections)
 
 
@@ -112,10 +107,13 @@ def test_all_files_excluded(tmp_path):
         include=["*"],
         exclude=["*"],
         task="test",
+        force=True,
     )
-    # No files should be included
-    files = [s for s in sections if s.type == "file"]
-    assert len(files) == 0
+
+    included_files = [
+        normalize_path(s.path, scanner.path) for s in sections if s.type == "file"
+    ]
+    assert len(included_files) == 0
 
 
 # -------------------------------
@@ -129,13 +127,22 @@ def test_conflicting_patterns(tmp_path):
         include=["*.py"],
         exclude=["dir0_0/file0.py"],
         task="test",
+        force=True,
     )
-    included_files = [s.path.name for s in sections if s.type == "file"]
-    print(included_files)
-    assert (
-        "file0.py" not in included_files
-    )  # TODO: Fix this bug 'file0.py' is excluded!
-    assert "file1.py" in included_files
+
+    included_files = [
+        normalize_path(s.path, scanner.path) for s in sections if s.type == "file"
+    ]
+
+    conflicts, conflicts_log = detect_pattern_conflicts(["*.py"], ["dir0_0/file0.py"])
+    problematic = check_include_in_exclude(
+        scanner.path, included_files, ["dir0_0/file0.py"]
+    )
+
+    assert "dir0_0/file0.py" not in included_files
+    assert any(f.endswith("file1.py") for f in included_files)
+    assert not conflicts, f"Unexpected conflicts: {conflicts_log}"
+    assert not problematic, f"Problematic includes detected: {problematic}"
 
 
-# pytest tests/test_stress_scan.py -v
+# PASSED

@@ -76,4 +76,4 @@ def test_stress_unity_project():
             raise RuntimeError("snib scan failed")
 
 
-# PASSED pytest tests/test_snib_unity.py -v
+# PASSED

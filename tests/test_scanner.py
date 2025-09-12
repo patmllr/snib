@@ -1,29 +1,132 @@
+import os
+from pathlib import Path
+
 import pytest
 
+from snib.config import SNIB_DEFAULT_CONFIG
+from snib.models import FilterStats, Section
 from snib.scanner import Scanner
 
 
-def test_file_matches_filters(tmp_path):
-    file_a = tmp_path / "a.py"
-    file_a.write_text("print('a')")
-    file_b = tmp_path / "b.log"
-    file_b.write_text("log")
+@pytest.fixture
+def config_dict():
+    """Return a copy of the default config so tests always pass check_config."""
+    import copy
 
-    scanner = Scanner(tmp_path)
-    # TODO: Scanner.__init__() missing 1 required positional argument: 'config'
-    assert scanner._file_matches_filters(file_a, include=["*.py"], exclude=["*.log"])
-    assert not scanner._file_matches_filters(
-        file_b, include=["*.py"], exclude=["*.log"]
+    return copy.deepcopy(SNIB_DEFAULT_CONFIG)
+
+
+@pytest.fixture
+def sample_project(tmp_path):
+    """Creates a sample project directory with nested files."""
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("print('a')")
+    (tmp_path / "src" / "b.txt").write_text("b file")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_a.py").write_text("assert True")
+    return tmp_path
+
+
+# ------------------
+# Unit tests
+# ------------------
+
+
+def test_split_patterns(config_dict):
+    s = Scanner(Path("."), config_dict)
+    globs, prefixes = s._split_patterns(["*.py", "src", "file.txt"])
+    assert "*.py" in globs
+    assert "src" in prefixes
+    assert "file.txt" in prefixes
+
+
+def test_match_patterns_glob_and_prefix(config_dict):
+    s = Scanner(Path("."), config_dict)
+    globs, prefixes = ["*.py"], ["src"]
+    assert s._match_patterns("src/a.py", "a.py", globs, prefixes)
+    assert not s._match_patterns("docs/readme.md", "readme.md", globs, prefixes)
+
+
+def test_scan_files_includes_and_excludes(sample_project, config_dict):
+    s = Scanner(sample_project, config_dict)
+    files = s._scan_files(sample_project, includes=["*.py"], excludes=["tests"])
+    rels = [f.relative_to(sample_project).as_posix() for f in files]
+    assert "src/a.py" in rels
+    assert "tests/test_a.py" not in rels
+
+
+def test_calculate_filter_stats_counts(tmp_path, config_dict):
+    f = tmp_path / "x.txt"
+    f.write_text("hello")
+    s = Scanner(tmp_path, config_dict)
+    stats = s._calculate_filter_stats([f], "included")
+    assert isinstance(stats, FilterStats)
+    assert stats.files == 1
+    assert stats.size == len("hello")
+
+
+# ------------------
+# Integration-style tests
+# ------------------
+
+
+def test_collect_sections_builds_sections(sample_project, config_dict):
+    s = Scanner(sample_project, config_dict)
+    sections = s._collect_sections(
+        description="desc",
+        include=["*.py"],
+        exclude=["tests"],
+        force=True,
+        task=list(config_dict["instruction"]["task_dict"].keys())[0],
+    )
+    types = [sec.type for sec in sections]
+    assert "description" in types
+    assert "task" in types
+    assert "filters" in types
+    assert "tree" in types
+    assert any(sec.type == "file" for sec in sections)
+
+
+def test_scan_pipeline_writes_chunks(monkeypatch, sample_project, config_dict):
+    s = Scanner(sample_project, config_dict)
+
+    # Monkeypatch Formatter, Chunker, Writer to avoid heavy I/O
+    class DummyFormatter:
+        def to_prompt_text(self, sections):
+            return ["formatted"]
+
+    class DummyChunker:
+        def __init__(self, size):
+            pass
+
+        def chunk(self, formatted):
+            return ["chunk1", "chunk2"]
+
+    written = {}
+
+    class DummyWriter:
+        def __init__(self, outdir):
+            self.outdir = outdir
+
+        def write_chunks(self, chunks, force):
+            written["chunks"] = chunks
+            return [Path("f1"), Path("f2")]
+
+    monkeypatch.setattr("snib.scanner.Formatter", DummyFormatter)
+    monkeypatch.setattr("snib.scanner.Chunker", DummyChunker)
+    monkeypatch.setattr("snib.scanner.Writer", DummyWriter)
+
+    s.scan(
+        description="desc",
+        include=["*.py"],
+        exclude=["tests"],
+        chunk_size=1000,
+        force=True,
+        task=list(config_dict["instruction"]["task_dict"].keys())[0],
     )
 
-
-def test_get_included_files(tmp_path):
-    (tmp_path / "a.py").write_text("print('a')")
-    (tmp_path / "b.log").write_text("log")
-    scanner = Scanner(tmp_path)
-    files = scanner._get_included_files(tmp_path, include=["*.py"], exclude=["*.log"])
-    assert len(files) == 1
-    assert files[0].name == "a.py"
+    assert "chunks" in written
+    assert any("Prompt file" in c or "chunk" in c for c in written["chunks"])
 
 
-# FAILED tests/test_scanner.py::test_file_matches_filters - TypeError: Scanner.__init__() missing 1 required positional argument: 'config'
+# PASSED

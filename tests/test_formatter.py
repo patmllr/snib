@@ -38,4 +38,4 @@ def test_formatter_size_formatting():
     assert "5.00 MB" in formatter._format_stats(stats)
 
 
-# PASSED pytest tests/test_formatter.py
+# PASSED

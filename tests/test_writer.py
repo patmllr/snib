@@ -15,4 +15,4 @@ def test_write_and_clear(tmp_path):
     assert not any(tmp_path.glob("prompt_*.txt"))
 
 
-# PASSED pytest tests/test_writer.py -v
+# PASSED

@@ -22,4 +22,4 @@ def test_chunker_empty_input():
     assert chunks == []
 
 
-# PASSED: pytest tests/test_chunker.py -v
+# PASSED
