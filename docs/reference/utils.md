@@ -1,15 +1,5 @@
 # Utils
 
-::: snib.utils.handle_include_args
-    options:
-      show_signature: true
-      show_root_heading: true
-
-::: snib.utils.handle_exclude_args
-    options:
-      show_signature: true
-      show_root_heading: true
-
 ::: snib.utils.detect_pattern_conflicts
     options:
       show_signature: true
