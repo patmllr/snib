@@ -10,52 +10,74 @@ from .config import SNIB_DEFAULT_CONFIG, load_config
 from .logger import logger
 
 
-def handle_include_args(include_list):
+def detect_pattern_conflicts(includes: list[str], excludes: list[str]) -> set[str]:
     """
-    Normalize and validate include arguments.
+    Detect conflicts between include and exclude patterns.
 
-    - Strips whitespace from all patterns.
-    - Removes empty entries.
-    - Treats `"all"` (case-insensitive) as "no restrictions" -> returns empty list.
+    Cases:
+    - Exact match (include == exclude).
+    - Include pattern matched by exclude.
+    - Exclude pattern more specific than include.
 
     Args:
-        include_list (list[str]): Raw include patterns from CLI or config.
+        includes (list[str]): List of include patterns.
+        excludes (list[str]): List of exclude patterns.
 
     Returns:
-        list[str]: Cleaned include patterns, or empty if `"all"` or nothing specified.
+        set[str]: Conflicting include patterns with explanations.
     """
-    include_list = [i.strip() for i in include_list if i.strip()]
 
-    if include_list and include_list[0].lower() != "all":
-        logger.debug(f"User include list: {include_list}")
-    else:
-        include_list = []
-        logger.debug("No user include list or 'all' specified.")
+    conflicts = set()
+    conflicts_log = set()
+    # check each include against each exclude
+    for inc in includes:
+        for exc in excludes:
+            # exact match is a conflict
+            if inc == exc:
+                conflicts.add(inc)
+                conflicts_log.add(f"{inc} == {exc}")
+            # include eaten by exclude -> fnmatch.fnmatch("*.py", "utils.py") -> False
+            elif fnmatch.fnmatch(inc, exc):
+                conflicts.add(inc)
+                conflicts_log.add(f"{inc} (matched by {exc})")
+            # exclude is more specific than include -> fnmatch.fnmatch("utils.py", "*.py") -> True DONT ADD TO CONFLICTS!
+            elif fnmatch.fnmatch(exc, inc):
+                conflicts_log.add(f"{inc} (conflicts with {exc})")
 
-    return include_list
+    return conflicts, conflicts_log
 
 
-def handle_exclude_args(exclude_list):
+def check_include_in_exclude(
+    path: Path, includes: list[str], excludes: list[str]
+) -> list[str]:
     """
-    Normalize and validate exclude arguments.
+    Check whether include patterns fall inside excluded directories.
 
-    - Strips whitespace from all patterns.
-    - Removes empty entries.
+    For example:
+        includes = ["src/main.py"]
+        excludes = ["src"]
+        → "src/main.py" is problematic.
 
     Args:
-        exclude_list (list[str]): Raw exclude patterns from CLI or config.
+        path (Path): Root directory of the project.
+        includes (list[str]): Include patterns (file paths).
+        excludes (list[str]): Exclude patterns (dir paths).
 
     Returns:
-        list[str]: Cleaned exclude patterns.
+        list[str]: List of problematic include patterns.
     """
-    exclude_list = [e.strip() for e in exclude_list if e.strip()]
+    problematic = []
 
-    if exclude_list:
-        logger.debug(f"User exclude list: {exclude_list}")
-    else:
-        logger.debug("No user exclude list specified.")
-
-    return exclude_list
+    for inc in includes:
+        inc_path = path / inc
+        if not inc_path.exists():
+            continue
+        for exc in excludes:
+            exc_path = path / exc
+            # only check folders
+            if exc_path.is_dir() and exc_path in inc_path.parents:
+                problematic.append(inc)
+    return problematic
 
 
 def build_tree(
@@ -140,14 +162,6 @@ def format_size(size: int) -> str:
     """
     Convert a byte size into a human-readable string.
 
-    Examples:
-        >>> format_size(500)
-        '500 B'
-        >>> format_size(2048)
-        '2.00 KB'
-        >>> format_size(5_242_880)
-        '5.00 MB'
-
     Args:
         size (int): File size in bytes.
 
@@ -162,76 +176,6 @@ def format_size(size: int) -> str:
     return f"{size} B"
 
 
-def detect_pattern_conflicts(includes: list[str], excludes: list[str]) -> set[str]:
-    """
-    Detect conflicts between include and exclude patterns.
-
-    Cases:
-    - Exact match (include == exclude).
-    - Include pattern matched by exclude.
-    - Exclude pattern more specific than include.
-
-    Args:
-        includes (list[str]): List of include patterns.
-        excludes (list[str]): List of exclude patterns.
-
-    Returns:
-        set[str]: Conflicting include patterns with explanations.
-    """
-
-    conflicts = set()
-    conflicts_log = set()
-    # check each include against each exclude
-    for inc in includes:
-        for exc in excludes:
-            # exact match is a conflict
-            if inc == exc:
-                conflicts.add(inc)
-                conflicts_log.add(f"{inc} == {exc}")
-            # include eaten by exclude -> fnmatch.fnmatch("*.py", "utils.py") -> False
-            elif fnmatch.fnmatch(inc, exc):
-                conflicts.add(inc)
-                conflicts_log.add(f"{inc} (matched by {exc})")
-            # exclude is more specific than include -> fnmatch.fnmatch("utils.py", "*.py") -> True DONT ADD TO CONFLICTS!
-            elif fnmatch.fnmatch(exc, inc):
-                conflicts_log.add(f"{inc} (conflicts with {exc})")
-
-    return conflicts, conflicts_log
-
-
-def check_include_in_exclude(
-    path: Path, includes: list[str], excludes: list[str]
-) -> list[str]:
-    """
-    Check whether include patterns fall inside excluded directories.
-
-    For example:
-        includes = ["src/main.py"]
-        excludes = ["src"]
-        → "src/main.py" is problematic.
-
-    Args:
-        path (Path): Root directory of the project.
-        includes (list[str]): Include patterns (file paths).
-        excludes (list[str]): Exclude patterns (dir paths).
-
-    Returns:
-        list[str]: List of problematic include patterns.
-    """
-    problematic = []
-
-    for inc in includes:
-        inc_path = path / inc
-        if not inc_path.exists():
-            continue
-        for exc in excludes:
-            exc_path = path / exc
-            # only check folders
-            if exc_path.is_dir() and exc_path in inc_path.parents:
-                problematic.append(inc)
-    return problematic
-
-
 def get_task_choices() -> list[str]:
     """
     Retrieve available task keys from config.
@@ -243,9 +187,11 @@ def get_task_choices() -> list[str]:
         list[str]: Available task keys (for CLI autocompletion).
     """
     config = load_config()
+    # TODO: validate config here!!!
     if not config:
         config = SNIB_DEFAULT_CONFIG
-    return Choice(list(config["instruction"]["task_dict"].keys()))
+    task_dict = config.get("instruction", {}).get("task_dict", {})
+    return Choice(list(task_dict.keys()))
 
 
 def get_preset_choices() -> list[str]:

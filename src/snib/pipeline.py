@@ -7,18 +7,14 @@ from .config import (
     SNIB_CONFIG_FILE,
     SNIB_DEFAULT_CONFIG,
     SNIB_PROMPTS_DIR,
+    check_config,
     load_config,
     load_preset,
     write_config,
 )
 from .logger import logger
 from .scanner import Scanner
-from .utils import (
-    check_include_in_exclude,
-    detect_pattern_conflicts,
-    handle_exclude_args,
-    handle_include_args,
-)
+from .utils import check_include_in_exclude, detect_pattern_conflicts
 
 
 class SnibPipeline:
@@ -30,15 +26,6 @@ class SnibPipeline:
     - `scan`: performs file collection, filtering, and chunking.
     - `clean`: deletes configuration files and/or output folders.
     """
-
-    def __init__(self, config=None):  # TODO: what comes in here?
-        """
-        Initializes a SnibPipeline instance.
-
-        Args:
-            config (dict, optional): Optional configuration dictionary. Defaults to None.
-        """
-        self.config = config
 
     def init(
         self, path: Path = Path.cwd(), preset: str = None, custom_preset: Path = None
@@ -61,60 +48,64 @@ class SnibPipeline:
         Raises:
             typer.Exit: If both `preset` and `custom_preset` are provided, or if errors occur.
         """
+
         config_path = path / SNIB_CONFIG_FILE
         prompts_dir = path / SNIB_PROMPTS_DIR
 
         # check flags conflict
         if preset and custom_preset:
             logger.error("--preset and --custom-preset cannot be used together.")
-            raise typer.Exit(1)
+            raise typer.Exit()
 
+        # check if config already exists else load and write config
         if config_path.exists():
-            logger.warning(f"{SNIB_CONFIG_FILE} already exists at {config_path}")
-            config_exists_warn = True
+            logger.error(f"{SNIB_CONFIG_FILE} already exists at {config_path}")
+            config_exists = True
 
         else:
-            config_exists_warn = False
             if preset:
                 data = load_preset(preset)
             elif custom_preset:
                 if not custom_preset.exists():
                     logger.error(f"Custom preset '{custom_preset}' not found.")
-                    raise typer.Exit(1)
+                    raise typer.Exit()
                 data = load_config(custom_preset)
             else:
                 data = SNIB_DEFAULT_CONFIG
-            # data = load_preset(preset) if preset else SNIB_DEFAULT_CONFIG
+
+            data = check_config(data)  # validate config data
             write_config(config_path, data)
             logger.notice(
                 f"{config_path} generated with "
-                f"{preset + ' preset' if preset else custom_preset.name if custom_preset else 'defaults'}"
+                f"{preset + ' preset.' if preset else 'custom preset: ' + custom_preset.name if custom_preset else 'defaults.'}"
             )
+            config_exists = False
 
+        # check if prompts/ folder already exists else create it
         if prompts_dir.exists():
-            prompts_dir_exists_warn = True
-            logger.warning(f"{SNIB_PROMPTS_DIR} already exists at {prompts_dir}")
+            logger.error(f"{SNIB_PROMPTS_DIR} already exists at {prompts_dir}")
+            prompts_dir_exists = True
         else:
-            prompts_dir_exists_warn = False
             prompts_dir.mkdir(exist_ok=True)
             logger.notice(f"Output folder created at {prompts_dir}")
+            prompts_dir_exists = False
 
-        if config_exists_warn or prompts_dir_exists_warn:
-            logger.info(
-                "Use 'snib clean' first if you want to initialise your project again."
-            )
+        # if something already exists exit
+        if config_exists or prompts_dir_exists:
+            logger.info("Use 'snib clean' if you want to initialise the project again.")
+            raise typer.Exit()
 
     def scan(
         self,
-        path: Path,
-        description: str,
-        task: str,
-        include_raw: str,
-        exclude_raw: str,
-        no_default_exclude: bool,
-        smart: bool,
-        chunk_size: int,
-        force: bool,
+        path: Path = Path.cwd(),
+        description: str = None,
+        task: str = None,
+        include_raw: str = None,
+        exclude_raw: str = None,
+        no_default_exclude: bool = False,
+        smart: bool = False,
+        chunk_size: int = None,
+        force: bool = False,
     ):
         """
         Runs the Snib scanning pipeline on the specified project.
@@ -141,57 +132,61 @@ class SnibPipeline:
         Raises:
             typer.Exit: If configuration or output folder is missing.
         """
-        # config = SNIB_DEFAULT_CONFIG  # TODO: del this?
+
         config_path = path / SNIB_CONFIG_FILE
         output_path = path / SNIB_PROMPTS_DIR
 
-        config_missing = False
-        output_missing = False
-
+        # check if config and output folder exist in path
         if not config_path.exists():
             logger.error(f"Config file '{config_path}' not found")
             config_missing = True
         else:
             config = load_config(config_path)
+            config = check_config(config)  # validate config
+            config_missing = False
 
         if not output_path.exists():
             logger.error(f"Output directory '{output_path}' not found")
             output_missing = True
+        else:
+            output_missing = False
 
         # if something is missing exit
         if config_missing or output_missing:
-            logger.info("Use 'snib init' first")  # TODO: change to note/hint
-            raise typer.Exit(1)
+            logger.info("Use 'snib init' first.")
+            raise typer.Exit()
 
-        # config exists made sure ...
-        # combine values: CLI > config
-        config_description = config["config"]["description"]
+        # let the user know which config is used (following keys must exist due to check_config)
+        config_name = config["config"]["name"]
         config_author = config["config"]["author"]
         config_version = config["config"]["version"]
 
-        # TODO: better formatting + more infos in config.py, e.g name, ...
-        # TODO: coloring 4 community
         logger.info(
-            f"Using 'snibconfig.toml': {config_description} by {config_author} v{config_version}"
+            f"Using {SNIB_CONFIG_FILE}: {config_name} by {config_author} v{config_version}"
         )
 
-        path = path or Path(config["project"]["path"])  # TODO: check this
+        # combine values: CLI > config
         description = description or config["project"]["description"]
         task = task or config["instruction"]["task"]
 
-        include_user = handle_include_args(include_raw.split(","))
-        exclude_user = handle_exclude_args(exclude_raw.split(","))
+        # get user includes
+        if include_raw:
+            include_user = [i.strip() for i in include_raw.split(",") if i.strip()]
+            logger.debug(f"User include list: {include_user}")
+        else:
+            include_user = []
+            logger.debug("No user include list specified. (Using 'all')")
 
-        logger.debug(
-            f"User filters after handle_exclude_args: Include: {include_user}, Exclude: {exclude_user}"
-        )
+        # get user excludes
+        if exclude_raw:
+            exclude_user = [e.strip() for e in exclude_raw.split(",") if e.strip()]
+            logger.debug(f"User exclude list: {exclude_user}")
+        else:
+            exclude_user = []
+            logger.debug("No user exclude list specified.")
 
-        include = (
-            include_user or config["filters"]["include"]
-        )  # TODO: option for config["filters"]["include"] + include_user
-        exclude = (
-            exclude_user or config["filters"]["exclude"]
-        )  # TODO: option for config["filters"]["exclude"] + exclude_user
+        include = include_user or config["filters"]["include"]
+        exclude = exclude_user or config["filters"]["exclude"]
 
         # add default excludes automatically unless disabled by user
         no_default_exclude = (
@@ -207,7 +202,7 @@ class SnibPipeline:
             include = list(set(include + config["filters"]["smart_include"]))
             exclude = list(set(exclude + config["filters"]["smart_exclude"]))
 
-        # detect filter conflicts (exclude wins) #TODO: set exlude or include wins
+        # detect include/exclude conflicts (exclude wins)
         conflicts, conflicts_log = detect_pattern_conflicts(include, exclude)
         if conflicts_log:
             logger.warning(
@@ -215,20 +210,22 @@ class SnibPipeline:
             )
 
         if conflicts:
-            # logger.debug(f"Conflicting patterns: {conflicts}")
-            # del in include because exlude wins
             include = [p for p in include if not any(p in c for c in conflicts)]
 
+        # TODO: this warning currently only works if --exclude "test" and --include "test/file.py" is used
+        # this should also work for a implicit path in the --include: --exclude "test" and --include "file.py" if file.py is in test/
+        # see Issue #2
         problematic = check_include_in_exclude(path, include, exclude)
         if problematic:
             logger.warning(
                 f"The following include patterns are inside excluded folders and will be ignored: {problematic}"
             )
-            # del in include_patterns because exlude wins
+            # logger.debug(f"include before removing problematic: {include}")
+            # logger.debug(f"problematic include: {problematic}")
             include = [p for p in include if not any(p in c for c in problematic)]
 
-        logger.debug(f"Final include: {include}")
-        logger.debug(f"Final exclude: {exclude}")
+        logger.debug(f"Final include (passed to Scanner.scan): {include}")
+        logger.debug(f"Final exclude (passed to Scanner.scan): {exclude}")
 
         chunk_size = chunk_size or config["output"]["chunk_size"]
         force = force or config["output"]["force"]
@@ -252,13 +249,14 @@ class SnibPipeline:
             typer.Exit: If no files/folders to delete or operation aborted by user.
             typer.Exit: If conflicting flags are provided (`config_only` and `output_only`).
         """
-        # checks flags conflict
-        if config_only and output_only:
-            logger.error("--config-only and --output-only cannot be used together.")
-            raise typer.Exit(code=1)
 
         config_path = path / SNIB_CONFIG_FILE
         output_dir = path / SNIB_PROMPTS_DIR
+
+        # checks flag conflicts
+        if config_only and output_only:
+            logger.error("--config-only and --output-only cannot be used together.")
+            raise typer.Exit()
 
         to_delete = []
 
@@ -268,7 +266,7 @@ class SnibPipeline:
         elif output_only:
             if output_dir.exists():
                 to_delete.append(output_dir)
-        else:  # default: delete all
+        else:
             if config_path.exists():
                 to_delete.append(config_path)
             if output_dir.exists():

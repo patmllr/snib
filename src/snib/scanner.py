@@ -5,15 +5,12 @@ from pathlib import Path
 import typer
 
 from .chunker import Chunker
-from .config import SNIB_PROMPTS_DIR
+from .config import SNIB_PROMPTS_DIR, check_config
 from .formatter import Formatter
 from .logger import logger
 from .models import FilterStats, Section
 from .utils import build_tree, format_size
 from .writer import Writer
-
-# TODO: typer progress bar for scan
-# HEART OF SNIB
 
 
 class Scanner:
@@ -42,12 +39,8 @@ class Scanner:
             path (Path): Project root directory.
             config (dict): Snib configuration dictionary.
         """
-        # TODO: add config to all module classes constructors if needed
         self.path = Path(path).resolve()
-        self.config = config
-        self.include_warning_num_files = (
-            100  # warn if > 100 files included TODO: mby add this to config?
-        )
+        self.config = check_config(config)
 
     def _collect_sections(
         self, description, include, exclude, force, task
@@ -89,10 +82,11 @@ class Scanner:
             f"Excluded stats: Files: {exclude_stats.files}, Size: {format_size(exclude_stats.size)}"
         )
 
-        # warn the user if he includes alot of files, e.g > 100
-        if include_stats.files > self.include_warning_num_files:
+        # get warning_include_limit from config if set (no mandatory config entry)
+        warning_include_limit = self.config["filters"].get("warning_include_limit", 100)
+        if include_stats.files > warning_include_limit:
             logger.warning(
-                f"Included files exceed {self.include_warning_num_files}. This may lead to large prompts and increased costs."
+                f"Included files exceed {warning_include_limit}. This may lead to large prompts and increased costs."
             )
             logger.notice("Consider refining your include/exclude patterns.")
             if not force:
@@ -101,7 +95,8 @@ class Scanner:
                     logger.info("Aborted.")
                     raise typer.Exit()
 
-        task_dict = self.config["instruction"]["task_dict"]
+        # get task instruction from config if set (no mandatory config entry)
+        task_dict = self.config["instruction"].get("task_dict", {})
         instruction = task_dict.get(task, "")
 
         sections: list[Section] = []
@@ -111,8 +106,8 @@ class Scanner:
         sections.append(
             Section(
                 type="filters",
-                include=include,  # TODO: included_files ?
-                exclude=exclude,  # TODO: excluded_files ?
+                include=include,
+                exclude=exclude,
                 include_stats=include_stats,
                 exclude_stats=exclude_stats,
             )
@@ -129,6 +124,7 @@ class Scanner:
         for file_path in included_files:
             try:
                 content = file_path.read_text(encoding="utf-8")
+                # TODO: handle binary files better
             except Exception:
                 content = f"<Could not read {file_path.name}>\n"
             sections.append(

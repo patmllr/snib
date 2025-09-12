@@ -6,6 +6,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.pytest_cache/
 
 # Virtual environments
 venv/
@@ -23,11 +24,12 @@ Thumbs.db
 # Logs
 *.log
 
-# Project-specific junk
+# Project-specific
 junk/
 prompts/
+snibconfig.toml
 
-# site from mkdocs
+# mkdocs site
 site/
 
 # coverage reports

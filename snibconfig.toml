@@ -1,10 +1,10 @@
 [config]
-description = "Default snibconfig.toml"
+name = "Default snib config"
 author = "patmllr"
 version = "1.0"
+description = "This is a default snib configuration file."
 
 [project]
-path = "."
 description = ""
 
 [instruction]
@@ -18,13 +18,11 @@ smart_exclude = [ "*.log", "*.zip", "*.tar", "*.gz", "*.bin", "*.exe", "*.dll", 
 default_exclude = [ "venv", "prompts", "__pycache__", ".git", "snibconfig.toml",]
 no_default_exclude = false
 smart = false
+warning_include_limit = 100
 
 [output]
 chunk_size = 30000
 force = false
-
-[ai]
-model = "gpt-4"
 
 [instruction.task_dict]
 debug = "Debug: Analyze the code and highlight potential errors, bugs, or inconsistencies."
