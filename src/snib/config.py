@@ -2,17 +2,19 @@ from importlib import resources
 from pathlib import Path
 
 import toml
+import typer
 
 from . import presets  # reference to snib.presets
 from .logger import logger
 
 SNIB_DEFAULT_CONFIG = {
     "config": {
-        "description": "Default snibconfig.toml",
+        "name": "Default snib config",
         "author": "patmllr",
         "version": "1.0",
+        "description": "This is a default snib configuration file.",
     },
-    "project": {"path": ".", "description": ""},
+    "project": {"description": ""},
     "instruction": {
         "task": "",
         "task_dict": {
@@ -77,14 +79,12 @@ SNIB_DEFAULT_CONFIG = {
         ],
         "no_default_exclude": False,
         "smart": False,
+        "warning_include_limit": 100,
     },
     "output": {
         "chunk_size": 30000,
         "force": False,
     },
-    "ai": {
-        "model": "gpt-4"
-    },  # TODO: add for later use with APIs (delete this for now)!
 }
 
 SNIB_CONFIG_FILE = "snibconfig.toml"
@@ -108,9 +108,8 @@ def write_config(
     """
     if path.exists():
         raise FileExistsError(f"{path} already exists.")
-    toml.dump(
-        content, path.open("w")
-    )  # TODO: Trailing Comma -> clean dump for presets (needs fix) -> tomli-w, tomlkit
+    # TODO: Trailing Comma -> clean dump for presets (needs fix)
+    toml.dump(content, path.open("w"))
 
 
 def load_config(path: Path = Path(SNIB_CONFIG_FILE)) -> dict:
@@ -124,7 +123,7 @@ def load_config(path: Path = Path(SNIB_CONFIG_FILE)) -> dict:
         dict | None: Loaded configuration dictionary or None if the file does not exist.
     """
     if not path.exists():
-        return None  # TODO: raise FileNotFoundError(f"{path} does not exist.") -> is there sense in returning None?
+        return None
     return toml.load(path.open("r"))
 
 
@@ -147,3 +146,50 @@ def load_preset(name: str) -> dict:
             return toml.load(f)
     except FileNotFoundError:
         raise ValueError(f"Preset '{name}' not found")
+
+
+def check_config(config: dict) -> dict:
+    """
+    Validate a Snib config dictionary.
+
+    - Ensure required sections and keys exist.
+
+    Args:
+        config (dict): config file.
+
+    Returns:
+        dict: Validated config.
+
+    typer.Exit is called on fatal errors.
+    """
+    mandatory_sections = list(SNIB_DEFAULT_CONFIG.keys())
+    missing_sections = [sec for sec in mandatory_sections if sec not in config]
+
+    if missing_sections:
+        logger.error(
+            f"Broken config: Missing {missing_sections} section(s) in snibconfig.toml."
+        )
+        logger.notice(
+            "Run 'snib clean' and 'snib init' to generate a new config or edit properly."
+        )
+        raise typer.Exit()
+
+    optional_subsections = ["warning_include_limit", "task_dict"]
+    missing_subsections = []
+    for sec, defaults in SNIB_DEFAULT_CONFIG.items():
+        for sub in defaults.keys():
+            if sub in optional_subsections:
+                continue
+            if sub not in config.get(sec, {}):
+                missing_subsections.append(f"{sec}.{sub}")
+
+    if missing_subsections:
+        logger.error(
+            f"Broken config: Missing {missing_subsections} key(s) in snibconfig.toml."
+        )
+        logger.notice(
+            "Run 'snib clean' and 'snib init' to generate a new config or edit properly."
+        )
+        raise typer.Exit()
+
+    return config
